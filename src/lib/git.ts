@@ -90,6 +90,20 @@ export async function doesRemoteBranchExist(
   branchName: string,
   remote = "origin"
 ): Promise<boolean> {
+  const state = await getRemoteBranchState(cwd, branchName, remote);
+  return state.exists;
+}
+
+export interface RemoteBranchState {
+  trackingRefExists: boolean;
+  exists: boolean;
+}
+
+export async function getRemoteBranchState(
+  cwd: string,
+  branchName: string,
+  remote = "origin"
+): Promise<RemoteBranchState> {
   const localRefResult = await execa(
     "git",
     ["show-ref", "--verify", "--quiet", `refs/remotes/${remote}/${branchName}`],
@@ -100,7 +114,10 @@ export async function doesRemoteBranchExist(
   );
 
   if (localRefResult.exitCode === 0) {
-    return true;
+    return {
+      trackingRefExists: true,
+      exists: true
+    };
   }
 
   const remoteResult = await execa(
@@ -112,5 +129,25 @@ export async function doesRemoteBranchExist(
     }
   );
 
-  return remoteResult.exitCode === 0;
+  return {
+    trackingRefExists: false,
+    exists: remoteResult.exitCode === 0
+  };
+}
+
+export async function fetchRemoteTrackingBranch(
+  cwd: string,
+  branchName: string,
+  remote: string,
+  options: RunGitStreamOptions
+): Promise<void> {
+  await runGitStreamWithOptions(
+    [
+      "fetch",
+      remote,
+      `+refs/heads/${branchName}:refs/remotes/${remote}/${branchName}`
+    ],
+    cwd,
+    options
+  );
 }

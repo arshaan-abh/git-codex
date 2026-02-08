@@ -5,7 +5,8 @@ import { isMissingExecutableError } from "../lib/errors.js";
 import { pathExists } from "../lib/fs-utils.js";
 import {
   doesLocalBranchExist,
-  doesRemoteBranchExist,
+  fetchRemoteTrackingBranch,
+  getRemoteBranchState,
   runGitStreamWithOptions
 } from "../lib/git.js";
 import { createOutput, type Output } from "../lib/output.js";
@@ -53,15 +54,26 @@ export async function runAddCommand(
 
   const remoteName = inferRemoteNameFromRef(resolved.base);
   const branchExists = await doesLocalBranchExist(repoContext.repoRoot, branchName);
-  const remoteBranchExists = branchExists
-    ? false
-    : await doesRemoteBranchExist(repoContext.repoRoot, branchName, remoteName);
+  const remoteState = branchExists
+    ? {
+        trackingRefExists: false,
+        exists: false
+      }
+    : await getRemoteBranchState(repoContext.repoRoot, branchName, remoteName);
+
+  if (remoteState.exists && !remoteState.trackingRefExists) {
+    output.info(`Fetching remote branch reference ${remoteName}/${branchName}...`);
+    await fetchRemoteTrackingBranch(repoContext.repoRoot, branchName, remoteName, {
+      quiet: output.quiet || output.json
+    });
+  }
+
   const worktreeAddArgs = buildWorktreeAddArgs({
     branchName,
     worktreePath,
     baseRef: resolved.base,
     localBranchExists: branchExists,
-    remoteBranchExists,
+    remoteBranchExists: remoteState.exists,
     remoteName
   });
 
