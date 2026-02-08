@@ -19,7 +19,7 @@ Remaining tasks from `PLAN.md` that are not yet implemented or fully closed.
 
 ## 2) Monorepo Env Scope Support
 
-- Status: `not implemented`
+- Status: `implemented` (2026-02-08)
 - Plan source: `PLAN.md` section `6) Worktree correctness and edge cases` (`--env-scope root|all|packages`)
 - Description:
   - Current env-copy logic only copies files from repo root.
@@ -35,7 +35,7 @@ Remaining tasks from `PLAN.md` that are not yet implemented or fully closed.
 
 ## 3) Linting in Local + CI Pipeline
 
-- Status: `not implemented`
+- Status: `implemented` (2026-02-08)
 - Plan source: `PLAN.md` section `7) Phase 3` (`lint + test + build`)
 - Description:
   - CI currently runs `typecheck`, `test`, and `build`; lint step is missing.
@@ -48,7 +48,7 @@ Remaining tasks from `PLAN.md` that are not yet implemented or fully closed.
 
 ## 4) Semantic Versioning + Changelog Workflow
 
-- Status: `not implemented`
+- Status: `implemented` (2026-02-08)
 - Plan source: `PLAN.md` section `7) Phase 3` (`Semantic versioning + changelog`)
 - Description:
   - Add a release/versioning process with consistent semver bumping and changelog updates.
@@ -61,7 +61,7 @@ Remaining tasks from `PLAN.md` that are not yet implemented or fully closed.
 
 ## 5) Documentation Gaps: Windows Locks FAQ
 
-- Status: `not implemented`
+- Status: `implemented` (2026-02-08)
 - Plan source: `PLAN.md` section `7) Phase 3` docs (`"Windows locks" FAQ`)
 - Description:
   - Add a dedicated troubleshooting section covering Windows directory lock failures during `rm`.
@@ -73,7 +73,7 @@ Remaining tasks from `PLAN.md` that are not yet implemented or fully closed.
 
 ## 6) Documentation Gaps: Parallel Codex Workflows Guide
 
-- Status: `not implemented`
+- Status: `implemented` (2026-02-08)
 - Plan source: `PLAN.md` section `7) Phase 3` docs (`"Parallel Codex workflows" guide`)
 - Description:
   - Add an end-to-end guide showing how multiple tasks/agents run in parallel using worktrees.
@@ -86,7 +86,7 @@ Remaining tasks from `PLAN.md` that are not yet implemented or fully closed.
 
 ## 7) Publish/Distribution Readiness
 
-- Status: `partially implemented`
+- Status: `implemented` (2026-02-08)
 - Plan source: `PLAN.md` section `4) NPM packaging & install strategy`
 - Description:
   - CLI package shape and `bin` entries exist, but published distribution/release flow is not finalized.

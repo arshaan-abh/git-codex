@@ -4,6 +4,7 @@ import path from "node:path";
 import { buildWorktreeAddArgs } from "../lib/add-strategy.js";
 import { resolveAddConfig } from "../lib/config.js";
 import { copyEnvLikeFiles, parseEnvGlobs } from "../lib/env-files.js";
+import { type EnvScope } from "../lib/env-scope.js";
 import { isMissingExecutableError, toErrorMessage } from "../lib/errors.js";
 import { pathExists } from "../lib/fs-utils.js";
 import {
@@ -32,6 +33,7 @@ export interface AddCommandOptions {
   dir?: string;
   copyEnv?: boolean;
   envGlobs?: string;
+  envScope?: EnvScope;
   overwriteEnv?: boolean;
   template?: boolean;
   templateFile?: string;
@@ -156,12 +158,19 @@ export async function runAddCommand(
       repoRoot: repoContext.repoRoot,
       worktreePath,
       globs: envGlobs,
+      scope: resolved.envScope,
       overwrite: resolved.overwriteEnv,
     });
 
     if (copyResult.matched.length === 0) {
-      output.info("No env-like files matched copy patterns.");
+      output.info(
+        `No env-like files matched copy patterns for scope "${copyResult.scope}".`,
+      );
     } else {
+      output.info(
+        `Env copy scope "${copyResult.scope}": matched ${copyResult.matched.length}, copied ${copyResult.copied.length}, skipped ${copyResult.skipped.length}.`,
+      );
+
       for (const copiedFile of copyResult.copied) {
         output.info(`Copied ${copiedFile}`);
       }

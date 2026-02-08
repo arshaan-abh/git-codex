@@ -7,6 +7,7 @@ import { runListCommand } from "./commands/list.js";
 import { runOpenCommand } from "./commands/open.js";
 import { runPromptCommand } from "./commands/prompt.js";
 import { runRmCommand } from "./commands/rm.js";
+import { parseOptionalEnvScope } from "./lib/env-scope.js";
 import { toErrorMessage } from "./lib/errors.js";
 import { createOutput } from "./lib/output.js";
 
@@ -34,6 +35,7 @@ async function main(): Promise<void> {
       "--env-globs <patterns>",
       "Comma-separated env-like file globs from repo root",
     )
+    .option("--env-scope <scope>", "Env copy scope: root, all, or packages")
     .option("--overwrite-env", "Overwrite env-like files in existing worktree")
     .option("--template", "Generate .codex/INSTRUCTIONS.md in the new worktree")
     .option(
@@ -85,6 +87,14 @@ async function main(): Promise<void> {
             command,
             "envGlobs",
             toOptionalString(opts.envGlobs),
+          ),
+          envScope: readExplicitOption(
+            command,
+            "envScope",
+            parseOptionalEnvScope(
+              toOptionalString(opts.envScope),
+              "CLI --env-scope",
+            ),
           ),
           overwriteEnv: readExplicitOption(
             command,

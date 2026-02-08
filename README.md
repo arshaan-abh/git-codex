@@ -12,6 +12,21 @@ Phase 1 scaffold is implemented:
 
 ## Install
 
+Published install (after release):
+
+```bash
+pnpm add -g git-codex
+git codex --help
+```
+
+Zero-install execution:
+
+```bash
+pnpm dlx git-codex --help
+```
+
+Local development install:
+
 ```bash
 pnpm install
 pnpm build
@@ -43,6 +58,7 @@ Key flags:
 - `--no-open` skip `code -n <worktree>`
 - `--no-copy-env` skip env copy
 - `--env-globs ".env,.env.*"` customize env-like patterns
+- `--env-scope <scope>` env file scan scope: `root`, `all`, or `packages`
 - `--overwrite-env` allow overwriting env-like files
 - `--template` generate `.codex/INSTRUCTIONS.md` for the new task worktree
 - `--template-file <path>` use a custom template file (supports `{{task}}`, `{{taskSlug}}`, `{{branch}}`, `{{worktreePath}}`)
@@ -108,6 +124,7 @@ Supported keys:
 - `copyEnv`
 - `envGlobs`
 - `overwriteEnv`
+- `envScope`
 - `template`
 - `templateFile`
 - `templateType`
@@ -128,6 +145,7 @@ Git config keys:
 - `codex.copyEnv`
 - `codex.envGlobs`
 - `codex.overwriteEnv`
+- `codex.envScope`
 - `codex.template`
 - `codex.templateFile`
 - `codex.templateType`
@@ -153,6 +171,7 @@ Example `.git-codexrc.json`:
   "fetch": false,
   "copyEnv": true,
   "envGlobs": [".env", ".env.*", ".npmrc"],
+  "envScope": "packages",
   "template": true,
   "templateFile": "task-template.md",
   "templateType": "bugfix",
@@ -160,9 +179,71 @@ Example `.git-codexrc.json`:
 }
 ```
 
+## Troubleshooting
+
+### Windows locks when removing worktrees
+
+Symptom:
+
+- `git codex rm <task>` fails with directory-not-empty or lock-related errors.
+
+Common causes:
+
+- VS Code window is still open for that worktree.
+- A file watcher/dev server is still running.
+- A terminal has CWD inside the worktree path.
+- Antivirus/indexer still holds a file handle.
+
+Recovery steps:
+
+1. Close VS Code windows opened at that worktree.
+2. Stop watchers/dev servers (for example `pnpm dev`, `vite`, `webpack --watch`).
+3. Ensure no shell is `cd`'d into the target directory.
+4. Retry remove with disk cleanup enabled:
+   - `git codex rm <task> --force-delete`
+5. If needed, wait a few seconds and retry after lock release.
+
+See also:
+
+- `docs/parallel-codex-workflows.md` for end-to-end usage.
+- Phase 2 config (`README.md`) for default worktree/env options.
+
 ## Development
 
 ```bash
+pnpm lint
 pnpm test
 pnpm build
 ```
+
+## Versioning and Releases
+
+`git-codex` uses Changesets for semantic versioning and changelog updates.
+
+Release flow:
+
+1. Create a changeset for user-facing changes:
+   - `pnpm changeset`
+2. Bump version and update `CHANGELOG.md`:
+   - `pnpm version-packages`
+3. Commit release metadata (version + changelog + changeset updates), then tag:
+   - `git tag v<version>`
+4. Pre-publish dry-run validation:
+   - `pnpm release:check`
+5. Publish:
+   - `pnpm release`
+
+Helpful checks before publish:
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+
+## Parallel Workflow Guide
+
+See `docs/parallel-codex-workflows.md` for a full parallel task workflow from creation to cleanup, including naming, prompt generation, and cleanup hygiene.
+
+## Release Checklist
+
+See `docs/release-checklist.md` for the full semver/changelog/tag/publish procedure, including package dry-run validation.

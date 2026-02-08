@@ -16,6 +16,7 @@ describe("config helpers", () => {
         branchPrefix: "team/",
         template: true,
         templateType: "feature",
+        envScope: "all",
       },
       {
         copyEnv: false,
@@ -34,6 +35,7 @@ describe("config helpers", () => {
     expect(resolved.template).toBe(true);
     expect(resolved.templateFile).toBe("templates/task.md");
     expect(resolved.templateType).toBe("feature");
+    expect(resolved.envScope).toBe("all");
     expect(resolved.fetch).toBe(true);
   });
 
@@ -46,6 +48,7 @@ describe("config helpers", () => {
         ["codex.open", "true"],
         ["codex.fetch", "0"],
         ["codex.envGlobs", ".env,.env.local"],
+        ["codex.envScope", "packages"],
         ["codex.template", "true"],
         ["codex.templateFile", "templates/custom.md"],
         ["codex.overwriteTemplate", "yes"],
@@ -60,6 +63,7 @@ describe("config helpers", () => {
       open: true,
       fetch: false,
       envGlobs: ".env,.env.local",
+      envScope: "packages",
       template: true,
       templateFile: "templates/custom.md",
       overwriteTemplate: true,
@@ -75,5 +79,13 @@ describe("config helpers", () => {
     expect(parseBooleanLike("no")).toBe(false);
     expect(parseBooleanLike("0")).toBe(false);
     expect(parseBooleanLike("maybe")).toBeUndefined();
+  });
+
+  it("rejects invalid env scope values in git config", () => {
+    expect(() =>
+      parseGitConfigMap(
+        new Map<string, string>([["codex.envScope", "invalid"]]),
+      ),
+    ).toThrow('Invalid codex.envScope: "invalid"');
   });
 });

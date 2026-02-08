@@ -65,6 +65,50 @@ describe("cli integration", () => {
     expect(await pathExists(worktreePath)).toBe(false);
   }, 120_000);
 
+  it("supports --env-scope packages for monorepo env copy", async () => {
+    const { repoPath } = await createRepoWithOrigin();
+
+    await mkdir(path.join(repoPath, "apps", "web"), { recursive: true });
+    await mkdir(path.join(repoPath, "packages", "api"), { recursive: true });
+    await mkdir(path.join(repoPath, "scripts"), { recursive: true });
+    await writeFile(path.join(repoPath, ".env"), "ROOT=1\n");
+    await writeFile(path.join(repoPath, "apps", "web", ".env"), "WEB=1\n");
+    await writeFile(path.join(repoPath, "packages", "api", ".env"), "API=1\n");
+    await writeFile(path.join(repoPath, "scripts", ".env"), "SCRIPT=1\n");
+
+    await runGit(repoPath, ["add", "."]);
+    await runGit(repoPath, ["commit", "-m", "add monorepo env fixtures"]);
+
+    const addResult = await runCli(repoPath, [
+      "add",
+      "env-packages",
+      "--json",
+      "--no-open",
+      "--no-fetch",
+      "--env-scope",
+      "packages",
+      "--env-globs",
+      ".env",
+    ]);
+    const addEvents = parseJsonLines(addResult.stdout);
+    const createdEvent = getEvent(addEvents, "worktree.created");
+    const worktreePath = String(createdEvent.path);
+
+    expect(
+      await pathExists(path.join(worktreePath, "apps", "web", ".env")),
+    ).toBe(true);
+    expect(
+      await pathExists(path.join(worktreePath, "packages", "api", ".env")),
+    ).toBe(true);
+    expect(await pathExists(path.join(worktreePath, "scripts", ".env"))).toBe(
+      false,
+    );
+
+    await runCli(repoPath, ["rm", "env-packages", "--json", "--force-delete"]);
+    await runGit(repoPath, ["branch", "-D", "codex/env-packages"]);
+    expect(await pathExists(worktreePath)).toBe(false);
+  }, 120_000);
+
   it("supports open and prompt workflows", async () => {
     const { repoPath } = await createRepoWithOrigin();
 

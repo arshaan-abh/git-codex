@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { execa } from "execa";
 
+import { parseOptionalEnvScope, type EnvScope } from "./env-scope.js";
 import { pathExists } from "./fs-utils.js";
 
 export interface CodexConfigValues {
@@ -12,6 +13,7 @@ export interface CodexConfigValues {
   dir?: string;
   copyEnv: boolean;
   envGlobs: string;
+  envScope: EnvScope;
   overwriteEnv: boolean;
   template: boolean;
   templateFile?: string;
@@ -29,6 +31,7 @@ export const addDefaults: CodexConfigValues = {
   dir: undefined,
   copyEnv: true,
   envGlobs: ".env,.env.*",
+  envScope: "root",
   overwriteEnv: false,
   template: false,
   templateFile: undefined,
@@ -43,6 +46,7 @@ interface RawConfigShape {
   branchPrefix?: unknown;
   dir?: unknown;
   envGlobs?: unknown;
+  envScope?: unknown;
   openVsCodeByDefault?: unknown;
   open?: unknown;
   copyEnv?: unknown;
@@ -101,6 +105,10 @@ export function parseGitConfigMap(
 
   const copyEnv = getBooleanFromString(get("codex.copyenv"));
   const overwriteEnv = getBooleanFromString(get("codex.overwriteenv"));
+  const envScope = parseOptionalEnvScope(
+    get("codex.envscope"),
+    "codex.envScope",
+  );
   const template = getBooleanFromString(get("codex.template"));
   const overwriteTemplate = getBooleanFromString(
     get("codex.overwritetemplate"),
@@ -116,6 +124,7 @@ export function parseGitConfigMap(
   assignIfDefined(overrides, "branchPrefix", get("codex.branchprefix"));
   assignIfDefined(overrides, "dir", get("codex.dir"));
   assignIfDefined(overrides, "envGlobs", get("codex.envglobs"));
+  assignIfDefined(overrides, "envScope", envScope);
   assignIfDefined(overrides, "copyEnv", copyEnv);
   assignIfDefined(overrides, "overwriteEnv", overwriteEnv);
   assignIfDefined(overrides, "template", template);
@@ -295,6 +304,10 @@ function parseJsonConfigObject(
 
   const config = raw as RawConfigShape;
   const envGlobs = normalizeEnvGlobs(config.envGlobs, sourcePath);
+  const envScope = parseOptionalEnvScope(
+    readString(config.envScope, "envScope", sourcePath),
+    `${sourcePath}: "envScope"`,
+  );
   const open =
     readBoolean(config.open, "open", sourcePath) ??
     readBoolean(config.openVsCodeByDefault, "openVsCodeByDefault", sourcePath);
@@ -304,6 +317,7 @@ function parseJsonConfigObject(
     branchPrefix: readString(config.branchPrefix, "branchPrefix", sourcePath),
     dir: readString(config.dir, "dir", sourcePath),
     envGlobs,
+    envScope,
     copyEnv: readBoolean(config.copyEnv, "copyEnv", sourcePath),
     overwriteEnv: readBoolean(config.overwriteEnv, "overwriteEnv", sourcePath),
     template: readBoolean(config.template, "template", sourcePath),
