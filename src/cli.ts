@@ -6,6 +6,7 @@ import { runAddCommand } from "./commands/add.js";
 import { runListCommand } from "./commands/list.js";
 import { runRmCommand } from "./commands/rm.js";
 import { toErrorMessage } from "./lib/errors.js";
+import { createOutput } from "./lib/output.js";
 
 async function main(): Promise<void> {
   const program = new Command();
@@ -13,6 +14,8 @@ async function main(): Promise<void> {
   program
     .name("git codex")
     .description("Manage task worktrees for parallel Codex workflows.")
+    .option("-q, --quiet", "Suppress non-error output")
+    .option("--json", "Emit structured JSON output for automation")
     .showHelpAfterError();
 
   program
@@ -34,6 +37,7 @@ async function main(): Promise<void> {
     .option("--no-copy-env", "Skip env-like file copy")
     .option("--no-fetch", "Skip git fetch before worktree creation")
     .action(async (task: string, opts, command: Command) => {
+      const output = createOutput(readGlobalOutputOptions(command));
       await runAddCommand(task, {
         open: readExplicitOption(command, "open", Boolean(opts.open)),
         base: readExplicitOption(command, "base", toOptionalString(opts.base)),
@@ -55,7 +59,7 @@ async function main(): Promise<void> {
           Boolean(opts.overwriteEnv)
         ),
         fetch: readExplicitOption(command, "fetch", Boolean(opts.fetch))
-      });
+      }, output);
     });
 
   program
@@ -71,6 +75,7 @@ async function main(): Promise<void> {
       "Delete the worktree directory after removing mapping"
     )
     .action(async (task: string, opts, command: Command) => {
+      const output = createOutput(readGlobalOutputOptions(command));
       await runRmCommand(task, {
         dir: readExplicitOption(command, "dir", toOptionalString(opts.dir)),
         forceDelete: readExplicitOption(
@@ -78,7 +83,7 @@ async function main(): Promise<void> {
           "forceDelete",
           Boolean(opts.forceDelete)
         )
-      });
+      }, output);
     });
 
   program
@@ -90,6 +95,7 @@ async function main(): Promise<void> {
     )
     .option("--branch-prefix <prefix>", "Branch prefix used by --pretty filtering")
     .action(async (opts, command: Command) => {
+      const output = createOutput(readGlobalOutputOptions(command));
       await runListCommand({
         pretty: readExplicitOption(command, "pretty", Boolean(opts.pretty)),
         branchPrefix: readExplicitOption(
@@ -97,15 +103,19 @@ async function main(): Promise<void> {
           "branchPrefix",
           toOptionalString(opts.branchPrefix)
         )
-      });
+      }, output);
     });
 
   await program.parseAsync(process.argv);
 }
 
 main().catch((error) => {
+  const output = createOutput({
+    json: process.argv.includes("--json"),
+    quiet: process.argv.includes("--quiet") || process.argv.includes("-q")
+  });
   const message = toErrorMessage(error);
-  process.stderr.write(`${message}\n`);
+  output.error(message);
   process.exitCode = 1;
 });
 
@@ -129,4 +139,19 @@ function toOptionalString(value: unknown): string | undefined {
 
   const trimmed = value.trim();
   return trimmed || undefined;
+}
+
+function readGlobalOutputOptions(command: Command): {
+  quiet?: boolean;
+  json?: boolean;
+} {
+  const options = command.optsWithGlobals() as {
+    quiet?: boolean;
+    json?: boolean;
+  };
+
+  return {
+    quiet: Boolean(options.quiet),
+    json: Boolean(options.json)
+  };
 }

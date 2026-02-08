@@ -1,5 +1,6 @@
 import { resolveListConfig } from "../lib/config.js";
 import { runGitCapture } from "../lib/git.js";
+import { createOutput, type Output } from "../lib/output.js";
 import { resolveRepoContext } from "../lib/repo.js";
 import {
   parseWorktreeListPorcelain,
@@ -11,21 +12,45 @@ export interface ListCommandOptions {
   branchPrefix?: string;
 }
 
-export async function runListCommand(options: ListCommandOptions): Promise<void> {
+export async function runListCommand(
+  options: ListCommandOptions,
+  output: Output = createOutput()
+): Promise<void> {
   const repoContext = await resolveRepoContext();
   const resolved = await resolveListConfig(repoContext.repoRoot, options);
 
-  if (!resolved.pretty) {
-    const output = await runGitCapture(["worktree", "list"], repoContext.repoRoot);
-    console.log(output);
+  if (!resolved.pretty && !output.json) {
+    const text = await runGitCapture(["worktree", "list"], repoContext.repoRoot);
+    output.print(text);
     return;
   }
 
-  const output = await runGitCapture(
+  const listOutput = await runGitCapture(
     ["worktree", "list", "--porcelain"],
     repoContext.repoRoot
   );
-  const entries = parseWorktreeListPorcelain(output);
+  const entries = parseWorktreeListPorcelain(listOutput);
+  if (output.json) {
+    const normalizedPrefix = normalizePrefix(resolved.branchPrefix);
+    const filteredEntries = resolved.pretty
+      ? entries.filter((entry) =>
+          entry.branch
+            ? entry.branch.startsWith(`refs/heads/${normalizedPrefix}`)
+            : false
+        )
+      : entries;
+    output.event("worktree.list", {
+      pretty: resolved.pretty,
+      branchPrefix: normalizedPrefix,
+      entries: filteredEntries.map((entry) => ({
+        path: entry.worktree,
+        branch: entry.branch ? stripHeadsRef(entry.branch) : undefined,
+        head: entry.head
+      }))
+    });
+    return;
+  }
+
   const normalizedPrefix = normalizePrefix(resolved.branchPrefix);
   const targetRefPrefix = `refs/heads/${normalizedPrefix}`;
   const filtered = entries.filter((entry) =>
@@ -33,7 +58,7 @@ export async function runListCommand(options: ListCommandOptions): Promise<void>
   );
 
   if (filtered.length === 0) {
-    console.log(`No worktrees found for branch prefix "${normalizedPrefix}".`);
+    output.info(`No worktrees found for branch prefix "${normalizedPrefix}".`);
     return;
   }
 
@@ -49,13 +74,13 @@ export async function runListCommand(options: ListCommandOptions): Promise<void>
     ...rows.map((row) => row.branch.length)
   );
 
-  console.log(
+  output.print(
     `${padRight("Path", pathWidth)}  ${padRight("Branch", branchWidth)}  HEAD`
   );
-  console.log(`${"-".repeat(pathWidth)}  ${"-".repeat(branchWidth)}  -------`);
+  output.print(`${"-".repeat(pathWidth)}  ${"-".repeat(branchWidth)}  -------`);
 
   for (const row of rows) {
-    console.log(
+    output.print(
       `${padRight(row.path, pathWidth)}  ${padRight(row.branch, branchWidth)}  ${row.head}`
     );
   }

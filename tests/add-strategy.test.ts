@@ -34,6 +34,26 @@ describe("buildWorktreeAddArgs", () => {
     ]);
   });
 
+  it("supports non-origin remotes for remote branch start points", () => {
+    expect(
+      buildWorktreeAddArgs({
+        branchName: "codex/task-a",
+        worktreePath: "/tmp/repo-task-a",
+        baseRef: "upstream/main",
+        localBranchExists: false,
+        remoteBranchExists: true,
+        remoteName: "upstream"
+      })
+    ).toEqual([
+      "worktree",
+      "add",
+      "-b",
+      "codex/task-a",
+      "/tmp/repo-task-a",
+      "upstream/codex/task-a"
+    ]);
+  });
+
   it("creates a new branch from base ref when branch does not exist", () => {
     expect(
       buildWorktreeAddArgs({

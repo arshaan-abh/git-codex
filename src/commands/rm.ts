@@ -3,7 +3,8 @@ import { rm } from "node:fs/promises";
 import { resolveRmConfig } from "../lib/config.js";
 import { toErrorMessage } from "../lib/errors.js";
 import { pathExists } from "../lib/fs-utils.js";
-import { runGitStatus, runGitStream } from "../lib/git.js";
+import { runGitStatus, runGitStreamWithOptions } from "../lib/git.js";
+import { createOutput, type Output } from "../lib/output.js";
 import { resolveRepoContext, resolveWorktreePath } from "../lib/repo.js";
 import { toTaskSlug } from "../lib/task-utils.js";
 
@@ -14,7 +15,8 @@ export interface RmCommandOptions {
 
 export async function runRmCommand(
   task: string,
-  options: RmCommandOptions
+  options: RmCommandOptions,
+  output: Output = createOutput()
 ): Promise<void> {
   const repoContext = await resolveRepoContext();
   const resolved = await resolveRmConfig(repoContext.repoRoot, options);
@@ -94,20 +96,33 @@ export async function runRmCommand(
     }
   }
 
-  await runGitStream(["worktree", "prune"], repoContext.repoRoot);
+  await runGitStreamWithOptions(["worktree", "prune"], repoContext.repoRoot, {
+    quiet: output.quiet || output.json
+  });
 
   if (!resolved.forceDelete && (await pathExists(worktreePath))) {
-    console.log(`Removed worktree mapping for ${worktreePath}`);
-    console.log(
+    output.info(`Removed worktree mapping for ${worktreePath}`);
+    output.info(
       "Directory still exists on disk. Use --force-delete to remove it as well."
     );
+    output.event("worktree.removed", {
+      path: worktreePath,
+      mappingOnly: true
+    });
     return;
   }
 
   if (removedMapping) {
-    console.log(`Removed worktree ${worktreePath}`);
+    output.info(`Removed worktree ${worktreePath}`);
+    output.event("worktree.removed", {
+      path: worktreePath,
+      mappingOnly: false
+    });
   } else {
-    console.log(`No existing worktree mapping found for ${worktreePath}`);
+    output.info(`No existing worktree mapping found for ${worktreePath}`);
+    output.event("worktree.not_found", {
+      path: worktreePath
+    });
   }
 }
 

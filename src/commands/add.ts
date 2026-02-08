@@ -6,8 +6,9 @@ import { pathExists } from "../lib/fs-utils.js";
 import {
   doesLocalBranchExist,
   doesRemoteBranchExist,
-  runGitStream
+  runGitStreamWithOptions
 } from "../lib/git.js";
+import { createOutput, type Output } from "../lib/output.js";
 import { resolveRepoContext, resolveWorktreePath } from "../lib/repo.js";
 import { buildBranchName, toTaskSlug } from "../lib/task-utils.js";
 import { openInVSCode } from "../lib/vscode.js";
@@ -25,7 +26,8 @@ export interface AddCommandOptions {
 
 export async function runAddCommand(
   task: string,
-  options: AddCommandOptions
+  options: AddCommandOptions,
+  output: Output = createOutput()
 ): Promise<void> {
   const repoContext = await resolveRepoContext();
   const resolved = await resolveAddConfig(repoContext.repoRoot, options);
@@ -43,23 +45,29 @@ export async function runAddCommand(
   }
 
   if (resolved.fetch) {
-    console.log("Fetching latest refs...");
-    await runGitStream(["fetch"], repoContext.repoRoot);
+    output.info("Fetching latest refs...");
+    await runGitStreamWithOptions(["fetch"], repoContext.repoRoot, {
+      quiet: output.quiet || output.json
+    });
   }
 
+  const remoteName = inferRemoteNameFromRef(resolved.base);
   const branchExists = await doesLocalBranchExist(repoContext.repoRoot, branchName);
   const remoteBranchExists = branchExists
     ? false
-    : await doesRemoteBranchExist(repoContext.repoRoot, branchName);
+    : await doesRemoteBranchExist(repoContext.repoRoot, branchName, remoteName);
   const worktreeAddArgs = buildWorktreeAddArgs({
     branchName,
     worktreePath,
     baseRef: resolved.base,
     localBranchExists: branchExists,
-    remoteBranchExists
+    remoteBranchExists,
+    remoteName
   });
 
-  await runGitStream(worktreeAddArgs, repoContext.repoRoot);
+  await runGitStreamWithOptions(worktreeAddArgs, repoContext.repoRoot, {
+    quiet: output.quiet || output.json
+  });
 
   if (resolved.copyEnv) {
     const envGlobs = parseEnvGlobs(resolved.envGlobs);
@@ -71,14 +79,14 @@ export async function runAddCommand(
     });
 
     if (copyResult.matched.length === 0) {
-      console.log("No env-like files matched copy patterns.");
+      output.info("No env-like files matched copy patterns.");
     } else {
       for (const copiedFile of copyResult.copied) {
-        console.log(`Copied ${copiedFile}`);
+        output.info(`Copied ${copiedFile}`);
       }
 
       for (const skippedFile of copyResult.skipped) {
-        console.log(`Skipped ${skippedFile} (already exists)`);
+        output.info(`Skipped ${skippedFile} (already exists)`);
       }
     }
   }
@@ -86,10 +94,10 @@ export async function runAddCommand(
   if (resolved.open) {
     try {
       await openInVSCode(worktreePath);
-      console.log(`Opened VS Code at ${worktreePath}`);
+      output.info(`Opened VS Code at ${worktreePath}`);
     } catch (error) {
       if (isMissingExecutableError(error)) {
-        console.log(
+        output.warn(
           "VS Code CLI `code` was not found in PATH. Install it from VS Code command palette: 'Shell Command: Install code command in PATH'."
         );
       } else {
@@ -98,6 +106,29 @@ export async function runAddCommand(
     }
   }
 
-  console.log(`Worktree ready at ${worktreePath}`);
-  console.log(`Branch: ${branchName}`);
+  output.info(`Worktree ready at ${worktreePath}`);
+  output.info(`Branch: ${branchName}`);
+  output.event("worktree.created", {
+    path: worktreePath,
+    branch: branchName
+  });
+}
+
+function inferRemoteNameFromRef(ref: string): string {
+  const trimmed = ref.trim();
+  if (!trimmed) {
+    return "origin";
+  }
+
+  if (trimmed.startsWith("refs/remotes/")) {
+    const parts = trimmed.split("/");
+    return parts[2] || "origin";
+  }
+
+  const slashIndex = trimmed.indexOf("/");
+  if (slashIndex > 0) {
+    return trimmed.slice(0, slashIndex);
+  }
+
+  return "origin";
 }

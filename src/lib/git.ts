@@ -9,6 +9,38 @@ export async function runGitCapture(
 }
 
 export async function runGitStream(args: string[], cwd: string): Promise<void> {
+  await runGitStreamWithOptions(args, cwd, {
+    quiet: false
+  });
+}
+
+export interface RunGitStreamOptions {
+  quiet?: boolean;
+}
+
+export async function runGitStreamWithOptions(
+  args: string[],
+  cwd: string,
+  options: RunGitStreamOptions
+): Promise<void> {
+  if (options.quiet) {
+    const result = await execa("git", args, {
+      cwd,
+      reject: false
+    });
+
+    if (result.exitCode === 0) {
+      return;
+    }
+
+    const detail = [result.stderr, result.stdout].filter(Boolean).join("\n").trim();
+    throw new Error(
+      detail
+        ? `Command failed: git ${args.join(" ")}\n${detail}`
+        : `Command failed: git ${args.join(" ")}`
+    );
+  }
+
   await execa("git", args, {
     cwd,
     stdio: "inherit"
@@ -58,7 +90,7 @@ export async function doesRemoteBranchExist(
   branchName: string,
   remote = "origin"
 ): Promise<boolean> {
-  const result = await execa(
+  const localRefResult = await execa(
     "git",
     ["show-ref", "--verify", "--quiet", `refs/remotes/${remote}/${branchName}`],
     {
@@ -67,5 +99,18 @@ export async function doesRemoteBranchExist(
     }
   );
 
-  return result.exitCode === 0;
+  if (localRefResult.exitCode === 0) {
+    return true;
+  }
+
+  const remoteResult = await execa(
+    "git",
+    ["ls-remote", "--exit-code", "--heads", remote, branchName],
+    {
+      cwd,
+      reject: false
+    }
+  );
+
+  return remoteResult.exitCode === 0;
 }

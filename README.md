@@ -26,6 +26,11 @@ git codex --help
 
 ## Commands
 
+Global flags (all commands):
+
+- `-q, --quiet` suppress non-error output
+- `--json` emit structured JSON output for CI/automation
+
 ### `git codex add <task>`
 
 Creates a worktree and branch for the task.
@@ -60,6 +65,8 @@ Optional:
 
 - `--pretty` filters by branch prefix and prints a compact table
 - `--branch-prefix <prefix>` default `codex/`
+
+In `--json` mode, `list` emits a structured `worktree.list` event with entries.
 
 ## Phase 2 Config
 
