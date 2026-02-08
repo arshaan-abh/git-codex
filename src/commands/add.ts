@@ -15,7 +15,7 @@ import {
 import { createOutput, type Output } from "../lib/output.js";
 import { resolveRepoContext, resolveWorktreePath } from "../lib/repo.js";
 import { buildBranchName, toTaskSlug } from "../lib/task-utils.js";
-import { writeTaskTemplate } from "../lib/template.js";
+import { normalizeTemplateType, writeTaskTemplate } from "../lib/template.js";
 import { openInVSCode } from "../lib/vscode.js";
 
 export interface AddCommandOptions {
@@ -28,6 +28,7 @@ export interface AddCommandOptions {
   overwriteEnv?: boolean;
   template?: boolean;
   templateFile?: string;
+  templateType?: string;
   overwriteTemplate?: boolean;
   fetch?: boolean;
 }
@@ -111,12 +112,14 @@ export async function runAddCommand(
   }
 
   if (resolved.template) {
+    const templateType = normalizeTemplateType(resolved.templateType);
     const templateSource = await loadOptionalTemplateSource(
       repoContext.repoRoot,
       resolved.templateFile
     );
     const templateResult = await writeTaskTemplate({
       worktreePath,
+      templateType,
       variables: {
         task,
         taskSlug,
@@ -138,7 +141,8 @@ export async function runAddCommand(
     output.event("template.generated", {
       path: templateResult.templatePath,
       created: templateResult.created,
-      overwritten: templateResult.overwritten
+      overwritten: templateResult.overwritten,
+      templateType
     });
   }
 

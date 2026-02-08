@@ -46,6 +46,7 @@ Key flags:
 - `--overwrite-env` allow overwriting env-like files
 - `--template` generate `.codex/INSTRUCTIONS.md` for the new task worktree
 - `--template-file <path>` use a custom template file (supports `{{task}}`, `{{taskSlug}}`, `{{branch}}`, `{{worktreePath}}`)
+- `--template-type <type>` choose built-in template skeleton: `default`, `bugfix`, or `feature`
 - `--overwrite-template` replace an existing generated instructions file
 - `--no-fetch` skip `git fetch`
 
@@ -109,6 +110,7 @@ Supported keys:
 - `overwriteEnv`
 - `template`
 - `templateFile`
+- `templateType`
 - `overwriteTemplate`
 - `fetch`
 - `open` or `openVsCodeByDefault`
@@ -128,6 +130,7 @@ Git config keys:
 - `codex.overwriteEnv`
 - `codex.template`
 - `codex.templateFile`
+- `codex.templateType`
 - `codex.overwriteTemplate`
 - `codex.fetch`
 - `codex.open`
@@ -152,6 +155,7 @@ Example `.git-codexrc.json`:
   "envGlobs": [".env", ".env.*", ".npmrc"],
   "template": true,
   "templateFile": "task-template.md",
+  "templateType": "bugfix",
   "openVsCodeByDefault": false
 }
 ```

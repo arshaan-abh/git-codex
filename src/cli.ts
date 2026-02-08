@@ -41,6 +41,10 @@ async function main(): Promise<void> {
       "Custom template source file (supports {{task}}, {{taskSlug}}, {{branch}}, {{worktreePath}})"
     )
     .option(
+      "--template-type <type>",
+      "Built-in template skeleton type: default, bugfix, or feature"
+    )
+    .option(
       "--overwrite-template",
       "Overwrite existing .codex/INSTRUCTIONS.md when generating template"
     )
@@ -74,6 +78,11 @@ async function main(): Promise<void> {
           command,
           "templateFile",
           toOptionalString(opts.templateFile)
+        ),
+        templateType: readExplicitOption(
+          command,
+          "templateType",
+          toOptionalString(opts.templateType)
         ),
         overwriteTemplate: readExplicitOption(
           command,

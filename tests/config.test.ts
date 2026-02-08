@@ -14,7 +14,8 @@ describe("config helpers", () => {
       {
         base: "origin/release",
         branchPrefix: "team/",
-        template: true
+        template: true,
+        templateType: "feature"
       },
       {
         copyEnv: false
@@ -32,6 +33,7 @@ describe("config helpers", () => {
     expect(resolved.open).toBe(false);
     expect(resolved.template).toBe(true);
     expect(resolved.templateFile).toBe("templates/task.md");
+    expect(resolved.templateType).toBe("feature");
     expect(resolved.fetch).toBe(true);
   });
 
@@ -46,7 +48,8 @@ describe("config helpers", () => {
         ["codex.envGlobs", ".env,.env.local"],
         ["codex.template", "true"],
         ["codex.templateFile", "templates/custom.md"],
-        ["codex.overwriteTemplate", "yes"]
+        ["codex.overwriteTemplate", "yes"],
+        ["codex.templateType", "bugfix"]
       ])
     );
 
@@ -59,7 +62,8 @@ describe("config helpers", () => {
       envGlobs: ".env,.env.local",
       template: true,
       templateFile: "templates/custom.md",
-      overwriteTemplate: true
+      overwriteTemplate: true,
+      templateType: "bugfix"
     });
   });
 

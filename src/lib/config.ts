@@ -15,6 +15,7 @@ export interface CodexConfigValues {
   overwriteEnv: boolean;
   template: boolean;
   templateFile?: string;
+  templateType: string;
   overwriteTemplate: boolean;
   fetch: boolean;
   open: boolean;
@@ -31,6 +32,7 @@ export const addDefaults: CodexConfigValues = {
   overwriteEnv: false,
   template: false,
   templateFile: undefined,
+  templateType: "default",
   overwriteTemplate: false,
   fetch: true,
   open: true
@@ -47,6 +49,7 @@ interface RawConfigShape {
   overwriteEnv?: unknown;
   template?: unknown;
   templateFile?: unknown;
+  templateType?: unknown;
   overwriteTemplate?: unknown;
   fetch?: unknown;
 }
@@ -100,24 +103,26 @@ export function parseGitConfigMap(
   const overwriteEnv = getBooleanFromString(get("codex.overwriteenv"));
   const template = getBooleanFromString(get("codex.template"));
   const overwriteTemplate = getBooleanFromString(get("codex.overwritetemplate"));
+  const templateType = get("codex.templatetype");
   const fetch = getBooleanFromString(get("codex.fetch"));
   const open =
     getBooleanFromString(get("codex.open")) ??
     getBooleanFromString(get("codex.openvscodebydefault"));
 
-  return {
-    base: get("codex.base"),
-    branchPrefix: get("codex.branchprefix"),
-    dir: get("codex.dir"),
-    envGlobs: get("codex.envglobs"),
-    copyEnv,
-    overwriteEnv,
-    template,
-    templateFile: get("codex.templatefile"),
-    overwriteTemplate,
-    fetch,
-    open
-  };
+  const overrides: CodexConfigOverrides = {};
+  assignIfDefined(overrides, "base", get("codex.base"));
+  assignIfDefined(overrides, "branchPrefix", get("codex.branchprefix"));
+  assignIfDefined(overrides, "dir", get("codex.dir"));
+  assignIfDefined(overrides, "envGlobs", get("codex.envglobs"));
+  assignIfDefined(overrides, "copyEnv", copyEnv);
+  assignIfDefined(overrides, "overwriteEnv", overwriteEnv);
+  assignIfDefined(overrides, "template", template);
+  assignIfDefined(overrides, "templateFile", get("codex.templatefile"));
+  assignIfDefined(overrides, "templateType", templateType);
+  assignIfDefined(overrides, "overwriteTemplate", overwriteTemplate);
+  assignIfDefined(overrides, "fetch", fetch);
+  assignIfDefined(overrides, "open", open);
+  return overrides;
 }
 
 export async function resolveAddConfig(
@@ -295,6 +300,7 @@ function parseJsonConfigObject(
     overwriteEnv: readBoolean(config.overwriteEnv, "overwriteEnv", sourcePath),
     template: readBoolean(config.template, "template", sourcePath),
     templateFile: readString(config.templateFile, "templateFile", sourcePath),
+    templateType: readString(config.templateType, "templateType", sourcePath),
     overwriteTemplate: readBoolean(
       config.overwriteTemplate,
       "overwriteTemplate",
@@ -380,4 +386,14 @@ function getBooleanFromString(value: string | undefined): boolean | undefined {
   }
 
   return parseBooleanLike(value);
+}
+
+function assignIfDefined<K extends keyof CodexConfigValues>(
+  target: CodexConfigOverrides,
+  key: K,
+  value: CodexConfigValues[K] | undefined
+): void {
+  if (value !== undefined) {
+    target[key] = value;
+  }
 }
