@@ -1,15 +1,17 @@
-import { readFile } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
 import path from "node:path";
 
 import { buildWorktreeAddArgs } from "../lib/add-strategy.js";
 import { resolveAddConfig } from "../lib/config.js";
 import { copyEnvLikeFiles, parseEnvGlobs } from "../lib/env-files.js";
-import { isMissingExecutableError } from "../lib/errors.js";
+import { isMissingExecutableError, toErrorMessage } from "../lib/errors.js";
 import { pathExists } from "../lib/fs-utils.js";
 import {
   doesLocalBranchExist,
   fetchRemoteTrackingBranch,
   getRemoteBranchState,
+  runGitCapture,
+  runGitStatus,
   runGitStreamWithOptions,
 } from "../lib/git.js";
 import { createOutput, type Output } from "../lib/output.js";
@@ -17,6 +19,11 @@ import { resolveRepoContext, resolveWorktreePath } from "../lib/repo.js";
 import { buildBranchName, toTaskSlug } from "../lib/task-utils.js";
 import { normalizeTemplateType, writeTaskTemplate } from "../lib/template.js";
 import { openInVSCode } from "../lib/vscode.js";
+import {
+  parseWorktreeListPorcelain,
+  stripHeadsRef,
+  type WorktreeEntry,
+} from "../lib/worktrees.js";
 
 export interface AddCommandOptions {
   open?: boolean;
@@ -30,6 +37,8 @@ export interface AddCommandOptions {
   templateFile?: string;
   templateType?: string;
   overwriteTemplate?: boolean;
+  reuse?: boolean;
+  rmFirst?: boolean;
   fetch?: boolean;
 }
 
@@ -48,56 +57,98 @@ export async function runAddCommand(
     taskSlug,
     resolved.dir,
   );
+  const reuse = Boolean(options.reuse);
+  const rmFirst = Boolean(options.rmFirst);
 
-  if (await pathExists(worktreePath)) {
-    throw new Error(`Worktree path already exists: ${worktreePath}`);
+  if (reuse && rmFirst) {
+    throw new Error("Cannot use --reuse and --rm-first together.");
   }
 
-  if (resolved.fetch) {
-    output.info("Fetching latest refs...");
-    await runGitStreamWithOptions(["fetch"], repoContext.repoRoot, {
+  const worktreeExists = await pathExists(worktreePath);
+  let reusedExistingWorktree = false;
+
+  if (!worktreeExists && reuse) {
+    throw new Error(
+      `Cannot use --reuse: worktree path does not exist: ${worktreePath}`,
+    );
+  }
+
+  if (worktreeExists) {
+    if (rmFirst) {
+      await removeExistingWorktreeForRecreate(
+        repoContext.repoRoot,
+        worktreePath,
+        output,
+      );
+    } else if (reuse) {
+      await assertReusableWorktreePath(
+        repoContext.repoRoot,
+        worktreePath,
+        branchName,
+      );
+      reusedExistingWorktree = true;
+      output.info(`Reusing existing worktree at ${worktreePath}`);
+    } else {
+      throw new Error(
+        [
+          `Worktree path already exists: ${worktreePath}`,
+          "Use --reuse to continue with the existing worktree or --rm-first to recreate it.",
+        ].join("\n"),
+      );
+    }
+  }
+
+  if (!reusedExistingWorktree) {
+    if (resolved.fetch) {
+      output.info("Fetching latest refs...");
+      await runGitStreamWithOptions(["fetch"], repoContext.repoRoot, {
+        quiet: output.quiet || output.json,
+      });
+    }
+
+    const remoteName = inferRemoteNameFromRef(resolved.base);
+    const branchExists = await doesLocalBranchExist(
+      repoContext.repoRoot,
+      branchName,
+    );
+    const remoteState = branchExists
+      ? {
+          trackingRefExists: false,
+          exists: false,
+        }
+      : await getRemoteBranchState(
+          repoContext.repoRoot,
+          branchName,
+          remoteName,
+        );
+
+    if (remoteState.exists && !remoteState.trackingRefExists) {
+      output.info(
+        `Fetching remote branch reference ${remoteName}/${branchName}...`,
+      );
+      await fetchRemoteTrackingBranch(
+        repoContext.repoRoot,
+        branchName,
+        remoteName,
+        {
+          quiet: output.quiet || output.json,
+        },
+      );
+    }
+
+    const worktreeAddArgs = buildWorktreeAddArgs({
+      branchName,
+      worktreePath,
+      baseRef: resolved.base,
+      localBranchExists: branchExists,
+      remoteBranchExists: remoteState.exists,
+      remoteName,
+    });
+
+    await runGitStreamWithOptions(worktreeAddArgs, repoContext.repoRoot, {
       quiet: output.quiet || output.json,
     });
   }
-
-  const remoteName = inferRemoteNameFromRef(resolved.base);
-  const branchExists = await doesLocalBranchExist(
-    repoContext.repoRoot,
-    branchName,
-  );
-  const remoteState = branchExists
-    ? {
-        trackingRefExists: false,
-        exists: false,
-      }
-    : await getRemoteBranchState(repoContext.repoRoot, branchName, remoteName);
-
-  if (remoteState.exists && !remoteState.trackingRefExists) {
-    output.info(
-      `Fetching remote branch reference ${remoteName}/${branchName}...`,
-    );
-    await fetchRemoteTrackingBranch(
-      repoContext.repoRoot,
-      branchName,
-      remoteName,
-      {
-        quiet: output.quiet || output.json,
-      },
-    );
-  }
-
-  const worktreeAddArgs = buildWorktreeAddArgs({
-    branchName,
-    worktreePath,
-    baseRef: resolved.base,
-    localBranchExists: branchExists,
-    remoteBranchExists: remoteState.exists,
-    remoteName,
-  });
-
-  await runGitStreamWithOptions(worktreeAddArgs, repoContext.repoRoot, {
-    quiet: output.quiet || output.json,
-  });
 
   if (resolved.copyEnv) {
     const envGlobs = parseEnvGlobs(resolved.envGlobs);
@@ -173,10 +224,14 @@ export async function runAddCommand(
 
   output.info(`Worktree ready at ${worktreePath}`);
   output.info(`Branch: ${branchName}`);
-  output.event("worktree.created", {
-    path: worktreePath,
-    branch: branchName,
-  });
+  output.event(
+    reusedExistingWorktree ? "worktree.reused" : "worktree.created",
+    {
+      path: worktreePath,
+      branch: branchName,
+      reused: reusedExistingWorktree,
+    },
+  );
 }
 
 function inferRemoteNameFromRef(ref: string): string {
@@ -215,4 +270,124 @@ async function loadOptionalTemplateSource(
   }
 
   return readFile(resolvedTemplatePath, "utf8");
+}
+
+async function assertReusableWorktreePath(
+  repoRoot: string,
+  worktreePath: string,
+  expectedBranch: string,
+): Promise<void> {
+  const matchingEntry = await findWorktreeByPath(repoRoot, worktreePath);
+  if (!matchingEntry) {
+    throw new Error(
+      [
+        `Cannot reuse ${worktreePath}: path exists, but it is not registered as a worktree in this repository.`,
+        "Use --rm-first to remove it and recreate the worktree.",
+      ].join("\n"),
+    );
+  }
+
+  const actualBranch = matchingEntry.branch
+    ? stripHeadsRef(matchingEntry.branch)
+    : undefined;
+  if (!actualBranch) {
+    throw new Error(
+      [
+        `Cannot reuse ${worktreePath}: worktree is detached.`,
+        `Expected branch: ${expectedBranch}`,
+      ].join("\n"),
+    );
+  }
+
+  if (actualBranch !== expectedBranch) {
+    throw new Error(
+      [
+        `Cannot reuse ${worktreePath}: branch mismatch.`,
+        `Expected branch: ${expectedBranch}`,
+        `Actual branch: ${actualBranch}`,
+        "Use --rm-first to recreate it for this task.",
+      ].join("\n"),
+    );
+  }
+}
+
+async function removeExistingWorktreeForRecreate(
+  repoRoot: string,
+  worktreePath: string,
+  output: Output,
+): Promise<void> {
+  output.info(
+    `Removing existing worktree at ${worktreePath} before recreate...`,
+  );
+
+  const removeResult = await runGitStatus(
+    ["worktree", "remove", "--force", worktreePath],
+    repoRoot,
+  );
+  const removeError = mergeGitErrorOutput(
+    removeResult.stderr,
+    removeResult.stdout,
+  );
+  if (
+    removeResult.exitCode !== 0 &&
+    !isMissingWorktreeMappingError(removeError)
+  ) {
+    throw new Error(
+      [
+        `Failed to remove existing worktree mapping for ${worktreePath}`,
+        removeError || "Unknown git error",
+      ].join("\n"),
+    );
+  }
+
+  try {
+    await rm(worktreePath, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 150,
+    });
+  } catch (error) {
+    throw new Error(
+      [
+        `Failed to remove existing worktree directory: ${worktreePath}`,
+        toErrorMessage(error),
+      ].join("\n"),
+    );
+  }
+
+  await runGitStreamWithOptions(["worktree", "prune"], repoRoot, {
+    quiet: output.quiet || output.json,
+  });
+}
+
+async function findWorktreeByPath(
+  repoRoot: string,
+  worktreePath: string,
+): Promise<WorktreeEntry | undefined> {
+  const listOutput = await runGitCapture(
+    ["worktree", "list", "--porcelain"],
+    repoRoot,
+  );
+  const entries = parseWorktreeListPorcelain(listOutput);
+  const normalizedTarget = normalizePathForComparison(worktreePath);
+
+  return entries.find(
+    (entry) => normalizePathForComparison(entry.worktree) === normalizedTarget,
+  );
+}
+
+function normalizePathForComparison(targetPath: string): string {
+  const normalized = path.normalize(path.resolve(targetPath));
+  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+}
+
+function mergeGitErrorOutput(stderr: string, stdout: string): string {
+  return [stderr, stdout].filter(Boolean).join("\n").trim();
+}
+
+function isMissingWorktreeMappingError(message: string): boolean {
+  return /is not a working tree|is not registered|no such file|does not exist/i.test(
+    message,
+  );
 }

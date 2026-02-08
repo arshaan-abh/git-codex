@@ -224,6 +224,136 @@ describe("cli integration", () => {
     await runGit(repoPath, ["branch", "-D", "codex/remote-fallback"]);
     expect(await pathExists(worktreePath)).toBe(false);
   }, 120_000);
+
+  it("rejects add when target path exists unless --reuse/--rm-first is provided", async () => {
+    const { repoPath } = await createRepoWithOrigin();
+
+    const addResult = await runCli(repoPath, [
+      "add",
+      "existing-path",
+      "--json",
+      "--no-open",
+      "--no-fetch",
+      "--no-copy-env",
+    ]);
+    const addEvents = parseJsonLines(addResult.stdout);
+    const createdEvent = getEvent(addEvents, "worktree.created");
+    const worktreePath = String(createdEvent.path);
+
+    const failure = await runCliExpectFailure(repoPath, [
+      "add",
+      "existing-path",
+      "--no-open",
+      "--no-fetch",
+      "--no-copy-env",
+    ]);
+    expect(failure.stderr).toContain("Worktree path already exists");
+    expect(failure.stderr).toContain("--reuse");
+    expect(failure.stderr).toContain("--rm-first");
+
+    await runCli(repoPath, ["rm", "existing-path", "--json", "--force-delete"]);
+    await runGit(repoPath, ["branch", "-D", "codex/existing-path"]);
+    expect(await pathExists(worktreePath)).toBe(false);
+  }, 120_000);
+
+  it("supports --reuse for existing task worktrees", async () => {
+    const { repoPath } = await createRepoWithOrigin();
+
+    const addResult = await runCli(repoPath, [
+      "add",
+      "reuse-task",
+      "--json",
+      "--no-open",
+      "--no-fetch",
+      "--no-copy-env",
+    ]);
+    const addEvents = parseJsonLines(addResult.stdout);
+    const createdEvent = getEvent(addEvents, "worktree.created");
+    const worktreePath = String(createdEvent.path);
+
+    const markerPath = path.join(worktreePath, "reuse-marker.txt");
+    await writeFile(markerPath, "keep me\n");
+
+    const reuseResult = await runCli(repoPath, [
+      "add",
+      "reuse-task",
+      "--json",
+      "--no-open",
+      "--no-fetch",
+      "--no-copy-env",
+      "--reuse",
+    ]);
+    const reuseEvents = parseJsonLines(reuseResult.stdout);
+    const reusedEvent = getEvent(reuseEvents, "worktree.reused");
+
+    expect(reusedEvent.path).toBe(worktreePath);
+    expect(reusedEvent.branch).toBe("codex/reuse-task");
+    expect(reusedEvent.reused).toBe(true);
+    expect(await pathExists(markerPath)).toBe(true);
+
+    await runCli(repoPath, ["rm", "reuse-task", "--json", "--force-delete"]);
+    await runGit(repoPath, ["branch", "-D", "codex/reuse-task"]);
+    expect(await pathExists(worktreePath)).toBe(false);
+  }, 120_000);
+
+  it("supports --rm-first to recreate existing task worktree paths", async () => {
+    const { repoPath } = await createRepoWithOrigin();
+
+    const addResult = await runCli(repoPath, [
+      "add",
+      "recreate-task",
+      "--json",
+      "--no-open",
+      "--no-fetch",
+      "--no-copy-env",
+    ]);
+    const addEvents = parseJsonLines(addResult.stdout);
+    const createdEvent = getEvent(addEvents, "worktree.created");
+    const worktreePath = String(createdEvent.path);
+
+    const markerPath = path.join(worktreePath, "recreate-marker.txt");
+    await writeFile(markerPath, "remove me\n");
+    expect(await pathExists(markerPath)).toBe(true);
+
+    const recreateResult = await runCli(repoPath, [
+      "add",
+      "recreate-task",
+      "--json",
+      "--no-open",
+      "--no-fetch",
+      "--no-copy-env",
+      "--rm-first",
+    ]);
+    const recreateEvents = parseJsonLines(recreateResult.stdout);
+    const recreatedEvent = getEvent(recreateEvents, "worktree.created");
+
+    expect(recreatedEvent.path).toBe(worktreePath);
+    expect(recreatedEvent.branch).toBe("codex/recreate-task");
+    expect(recreatedEvent.reused).toBe(false);
+    expect(await pathExists(markerPath)).toBe(false);
+
+    await runCli(repoPath, ["rm", "recreate-task", "--json", "--force-delete"]);
+    await runGit(repoPath, ["branch", "-D", "codex/recreate-task"]);
+    expect(await pathExists(worktreePath)).toBe(false);
+  }, 120_000);
+
+  it("rejects conflicting --reuse and --rm-first flags", async () => {
+    const { repoPath } = await createRepoWithOrigin();
+
+    const failure = await runCliExpectFailure(repoPath, [
+      "add",
+      "conflicting-flags",
+      "--no-open",
+      "--no-fetch",
+      "--no-copy-env",
+      "--reuse",
+      "--rm-first",
+    ]);
+
+    expect(failure.stderr).toContain(
+      "Cannot use --reuse and --rm-first together",
+    );
+  }, 120_000);
 });
 
 async function createRepoWithOrigin(): Promise<{
@@ -275,6 +405,27 @@ async function runCli(
         `Exit code: ${result.exitCode ?? "unknown"}`,
         result.stderr || result.stdout || "No output",
       ].join("\n"),
+    );
+  }
+
+  return {
+    stdout: result.stdout.trim(),
+    stderr: result.stderr.trim(),
+  };
+}
+
+async function runCliExpectFailure(
+  cwd: string,
+  args: string[],
+): Promise<{ stdout: string; stderr: string }> {
+  const result = await execa(process.execPath, [cliPath, ...args], {
+    cwd,
+    reject: false,
+  });
+
+  if (result.exitCode === 0) {
+    throw new Error(
+      `Expected CLI failure in ${cwd} for: node ${cliPath} ${args.join(" ")}`,
     );
   }
 

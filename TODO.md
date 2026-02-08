@@ -4,7 +4,7 @@ Remaining tasks from `PLAN.md` that are not yet implemented or fully closed.
 
 ## 1) Worktree Reuse/Recreate Flags
 
-- Status: `not implemented`
+- Status: `implemented` (2026-02-08)
 - Plan source: `PLAN.md` section `6) Worktree correctness and edge cases` (`--reuse`, `--rm-first`)
 - Description:
   - When `git codex add <task>` resolves a worktree path that already exists, current behavior is to error.

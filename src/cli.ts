@@ -48,6 +48,14 @@ async function main(): Promise<void> {
       "--overwrite-template",
       "Overwrite existing .codex/INSTRUCTIONS.md when generating template",
     )
+    .option(
+      "--reuse",
+      "Reuse existing worktree path (must already be registered with expected branch)",
+    )
+    .option(
+      "--rm-first",
+      "Remove existing target worktree path first, then recreate it",
+    )
     .option("--no-open", "Do not open a new VS Code window")
     .option("--no-copy-env", "Skip env-like file copy")
     .option("--no-fetch", "Skip git fetch before worktree creation")
@@ -103,6 +111,8 @@ async function main(): Promise<void> {
             "overwriteTemplate",
             Boolean(opts.overwriteTemplate),
           ),
+          reuse: Boolean(opts.reuse),
+          rmFirst: Boolean(opts.rmFirst),
           fetch: readExplicitOption(command, "fetch", Boolean(opts.fetch)),
         },
         output,
