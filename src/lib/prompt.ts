@@ -8,7 +8,8 @@ export interface TaskPromptInput {
 
 export function buildTaskPrompt(input: TaskPromptInput): string {
   const normalizedMessage = input.message.trim();
-  const body = normalizedMessage.length > 0 ? normalizedMessage : "(no message)";
+  const body =
+    normalizedMessage.length > 0 ? normalizedMessage : "(no message)";
 
   return [
     `Task: ${input.task}`,
@@ -17,6 +18,6 @@ export function buildTaskPrompt(input: TaskPromptInput): string {
     `Worktree: ${input.worktreePath}`,
     "",
     "Prompt:",
-    body
+    body,
   ].join("\n");
 }

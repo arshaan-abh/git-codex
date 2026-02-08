@@ -2,7 +2,7 @@ import { execa } from "execa";
 
 export async function runGitCapture(
   args: string[],
-  cwd: string
+  cwd: string,
 ): Promise<string> {
   const result = await execa("git", args, { cwd });
   return result.stdout.trimEnd();
@@ -10,7 +10,7 @@ export async function runGitCapture(
 
 export async function runGitStream(args: string[], cwd: string): Promise<void> {
   await runGitStreamWithOptions(args, cwd, {
-    quiet: false
+    quiet: false,
   });
 }
 
@@ -21,29 +21,32 @@ export interface RunGitStreamOptions {
 export async function runGitStreamWithOptions(
   args: string[],
   cwd: string,
-  options: RunGitStreamOptions
+  options: RunGitStreamOptions,
 ): Promise<void> {
   if (options.quiet) {
     const result = await execa("git", args, {
       cwd,
-      reject: false
+      reject: false,
     });
 
     if (result.exitCode === 0) {
       return;
     }
 
-    const detail = [result.stderr, result.stdout].filter(Boolean).join("\n").trim();
+    const detail = [result.stderr, result.stdout]
+      .filter(Boolean)
+      .join("\n")
+      .trim();
     throw new Error(
       detail
         ? `Command failed: git ${args.join(" ")}\n${detail}`
-        : `Command failed: git ${args.join(" ")}`
+        : `Command failed: git ${args.join(" ")}`,
     );
   }
 
   await execa("git", args, {
     cwd,
-    stdio: "inherit"
+    stdio: "inherit",
   });
 }
 
@@ -55,31 +58,31 @@ export interface GitStatusResult {
 
 export async function runGitStatus(
   args: string[],
-  cwd: string
+  cwd: string,
 ): Promise<GitStatusResult> {
   const result = await execa("git", args, {
     cwd,
-    reject: false
+    reject: false,
   });
 
   return {
     exitCode: result.exitCode ?? -1,
     stdout: result.stdout,
-    stderr: result.stderr
+    stderr: result.stderr,
   };
 }
 
 export async function doesLocalBranchExist(
   cwd: string,
-  branchName: string
+  branchName: string,
 ): Promise<boolean> {
   const result = await execa(
     "git",
     ["show-ref", "--verify", "--quiet", `refs/heads/${branchName}`],
     {
       cwd,
-      reject: false
-    }
+      reject: false,
+    },
   );
 
   return result.exitCode === 0;
@@ -88,7 +91,7 @@ export async function doesLocalBranchExist(
 export async function doesRemoteBranchExist(
   cwd: string,
   branchName: string,
-  remote = "origin"
+  remote = "origin",
 ): Promise<boolean> {
   const state = await getRemoteBranchState(cwd, branchName, remote);
   return state.exists;
@@ -102,21 +105,21 @@ export interface RemoteBranchState {
 export async function getRemoteBranchState(
   cwd: string,
   branchName: string,
-  remote = "origin"
+  remote = "origin",
 ): Promise<RemoteBranchState> {
   const localRefResult = await execa(
     "git",
     ["show-ref", "--verify", "--quiet", `refs/remotes/${remote}/${branchName}`],
     {
       cwd,
-      reject: false
-    }
+      reject: false,
+    },
   );
 
   if (localRefResult.exitCode === 0) {
     return {
       trackingRefExists: true,
-      exists: true
+      exists: true,
     };
   }
 
@@ -125,13 +128,13 @@ export async function getRemoteBranchState(
     ["ls-remote", "--exit-code", "--heads", remote, branchName],
     {
       cwd,
-      reject: false
-    }
+      reject: false,
+    },
   );
 
   return {
     trackingRefExists: false,
-    exists: remoteResult.exitCode === 0
+    exists: remoteResult.exitCode === 0,
   };
 }
 
@@ -139,15 +142,15 @@ export async function fetchRemoteTrackingBranch(
   cwd: string,
   branchName: string,
   remote: string,
-  options: RunGitStreamOptions
+  options: RunGitStreamOptions,
 ): Promise<void> {
   await runGitStreamWithOptions(
     [
       "fetch",
       remote,
-      `+refs/heads/${branchName}:refs/remotes/${remote}/${branchName}`
+      `+refs/heads/${branchName}:refs/remotes/${remote}/${branchName}`,
     ],
     cwd,
-    options
+    options,
   );
 }

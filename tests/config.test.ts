@@ -4,7 +4,7 @@ import {
   addDefaults,
   mergeAddConfigLayers,
   parseBooleanLike,
-  parseGitConfigMap
+  parseGitConfigMap,
 } from "../src/lib/config.js";
 
 describe("config helpers", () => {
@@ -15,16 +15,16 @@ describe("config helpers", () => {
         base: "origin/release",
         branchPrefix: "team/",
         template: true,
-        templateType: "feature"
+        templateType: "feature",
       },
       {
-        copyEnv: false
+        copyEnv: false,
       },
       {
         branchPrefix: "feature/",
         open: false,
-        templateFile: "templates/task.md"
-      }
+        templateFile: "templates/task.md",
+      },
     );
 
     expect(resolved.base).toBe("origin/release");
@@ -49,8 +49,8 @@ describe("config helpers", () => {
         ["codex.template", "true"],
         ["codex.templateFile", "templates/custom.md"],
         ["codex.overwriteTemplate", "yes"],
-        ["codex.templateType", "bugfix"]
-      ])
+        ["codex.templateType", "bugfix"],
+      ]),
     );
 
     expect(parsed).toEqual({
@@ -63,7 +63,7 @@ describe("config helpers", () => {
       template: true,
       templateFile: "templates/custom.md",
       overwriteTemplate: true,
-      templateType: "bugfix"
+      templateType: "bugfix",
     });
   });
 

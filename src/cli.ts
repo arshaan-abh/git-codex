@@ -28,69 +28,85 @@ async function main(): Promise<void> {
     .option("--branch-prefix <prefix>", "Branch prefix for generated branches")
     .option(
       "--dir <path>",
-      "Parent directory for worktrees (default: sibling of repo root)"
+      "Parent directory for worktrees (default: sibling of repo root)",
     )
     .option(
       "--env-globs <patterns>",
-      "Comma-separated env-like file globs from repo root"
+      "Comma-separated env-like file globs from repo root",
     )
     .option("--overwrite-env", "Overwrite env-like files in existing worktree")
     .option("--template", "Generate .codex/INSTRUCTIONS.md in the new worktree")
     .option(
       "--template-file <path>",
-      "Custom template source file (supports {{task}}, {{taskSlug}}, {{branch}}, {{worktreePath}})"
+      "Custom template source file (supports {{task}}, {{taskSlug}}, {{branch}}, {{worktreePath}})",
     )
     .option(
       "--template-type <type>",
-      "Built-in template skeleton type: default, bugfix, or feature"
+      "Built-in template skeleton type: default, bugfix, or feature",
     )
     .option(
       "--overwrite-template",
-      "Overwrite existing .codex/INSTRUCTIONS.md when generating template"
+      "Overwrite existing .codex/INSTRUCTIONS.md when generating template",
     )
     .option("--no-open", "Do not open a new VS Code window")
     .option("--no-copy-env", "Skip env-like file copy")
     .option("--no-fetch", "Skip git fetch before worktree creation")
     .action(async (task: string, opts, command: Command) => {
       const output = createOutput(readGlobalOutputOptions(command));
-      await runAddCommand(task, {
-        open: readExplicitOption(command, "open", Boolean(opts.open)),
-        base: readExplicitOption(command, "base", toOptionalString(opts.base)),
-        branchPrefix: readExplicitOption(
-          command,
-          "branchPrefix",
-          toOptionalString(opts.branchPrefix)
-        ),
-        dir: readExplicitOption(command, "dir", toOptionalString(opts.dir)),
-        copyEnv: readExplicitOption(command, "copyEnv", Boolean(opts.copyEnv)),
-        envGlobs: readExplicitOption(
-          command,
-          "envGlobs",
-          toOptionalString(opts.envGlobs)
-        ),
-        overwriteEnv: readExplicitOption(
-          command,
-          "overwriteEnv",
-          Boolean(opts.overwriteEnv)
-        ),
-        template: readExplicitOption(command, "template", Boolean(opts.template)),
-        templateFile: readExplicitOption(
-          command,
-          "templateFile",
-          toOptionalString(opts.templateFile)
-        ),
-        templateType: readExplicitOption(
-          command,
-          "templateType",
-          toOptionalString(opts.templateType)
-        ),
-        overwriteTemplate: readExplicitOption(
-          command,
-          "overwriteTemplate",
-          Boolean(opts.overwriteTemplate)
-        ),
-        fetch: readExplicitOption(command, "fetch", Boolean(opts.fetch))
-      }, output);
+      await runAddCommand(
+        task,
+        {
+          open: readExplicitOption(command, "open", Boolean(opts.open)),
+          base: readExplicitOption(
+            command,
+            "base",
+            toOptionalString(opts.base),
+          ),
+          branchPrefix: readExplicitOption(
+            command,
+            "branchPrefix",
+            toOptionalString(opts.branchPrefix),
+          ),
+          dir: readExplicitOption(command, "dir", toOptionalString(opts.dir)),
+          copyEnv: readExplicitOption(
+            command,
+            "copyEnv",
+            Boolean(opts.copyEnv),
+          ),
+          envGlobs: readExplicitOption(
+            command,
+            "envGlobs",
+            toOptionalString(opts.envGlobs),
+          ),
+          overwriteEnv: readExplicitOption(
+            command,
+            "overwriteEnv",
+            Boolean(opts.overwriteEnv),
+          ),
+          template: readExplicitOption(
+            command,
+            "template",
+            Boolean(opts.template),
+          ),
+          templateFile: readExplicitOption(
+            command,
+            "templateFile",
+            toOptionalString(opts.templateFile),
+          ),
+          templateType: readExplicitOption(
+            command,
+            "templateType",
+            toOptionalString(opts.templateType),
+          ),
+          overwriteTemplate: readExplicitOption(
+            command,
+            "overwriteTemplate",
+            Boolean(opts.overwriteTemplate),
+          ),
+          fetch: readExplicitOption(command, "fetch", Boolean(opts.fetch)),
+        },
+        output,
+      );
     });
 
   program
@@ -99,22 +115,26 @@ async function main(): Promise<void> {
     .argument("<task>", "Task label")
     .option(
       "--dir <path>",
-      "Parent directory for worktrees (default: sibling of repo root)"
+      "Parent directory for worktrees (default: sibling of repo root)",
     )
     .option(
       "--force-delete",
-      "Delete the worktree directory after removing mapping"
+      "Delete the worktree directory after removing mapping",
     )
     .action(async (task: string, opts, command: Command) => {
       const output = createOutput(readGlobalOutputOptions(command));
-      await runRmCommand(task, {
-        dir: readExplicitOption(command, "dir", toOptionalString(opts.dir)),
-        forceDelete: readExplicitOption(
-          command,
-          "forceDelete",
-          Boolean(opts.forceDelete)
-        )
-      }, output);
+      await runRmCommand(
+        task,
+        {
+          dir: readExplicitOption(command, "dir", toOptionalString(opts.dir)),
+          forceDelete: readExplicitOption(
+            command,
+            "forceDelete",
+            Boolean(opts.forceDelete),
+          ),
+        },
+        output,
+      );
     });
 
   program
@@ -122,19 +142,25 @@ async function main(): Promise<void> {
     .description("List git worktrees.")
     .option(
       "--pretty",
-      "Show a filtered table for branches using the configured prefix"
+      "Show a filtered table for branches using the configured prefix",
     )
-    .option("--branch-prefix <prefix>", "Branch prefix used by --pretty filtering")
+    .option(
+      "--branch-prefix <prefix>",
+      "Branch prefix used by --pretty filtering",
+    )
     .action(async (opts, command: Command) => {
       const output = createOutput(readGlobalOutputOptions(command));
-      await runListCommand({
-        pretty: readExplicitOption(command, "pretty", Boolean(opts.pretty)),
-        branchPrefix: readExplicitOption(
-          command,
-          "branchPrefix",
-          toOptionalString(opts.branchPrefix)
-        )
-      }, output);
+      await runListCommand(
+        {
+          pretty: readExplicitOption(command, "pretty", Boolean(opts.pretty)),
+          branchPrefix: readExplicitOption(
+            command,
+            "branchPrefix",
+            toOptionalString(opts.branchPrefix),
+          ),
+        },
+        output,
+      );
     });
 
   program
@@ -143,21 +169,28 @@ async function main(): Promise<void> {
     .argument("<task>", "Task label")
     .option(
       "--dir <path>",
-      "Parent directory for worktrees (default: sibling of repo root)"
+      "Parent directory for worktrees (default: sibling of repo root)",
     )
-    .option("--branch-prefix <prefix>", "Branch prefix for expected branch name")
+    .option(
+      "--branch-prefix <prefix>",
+      "Branch prefix for expected branch name",
+    )
     .option("--no-open", "Only print worktree metadata without opening VS Code")
     .action(async (task: string, opts, command: Command) => {
       const output = createOutput(readGlobalOutputOptions(command));
-      await runOpenCommand(task, {
-        dir: readExplicitOption(command, "dir", toOptionalString(opts.dir)),
-        branchPrefix: readExplicitOption(
-          command,
-          "branchPrefix",
-          toOptionalString(opts.branchPrefix)
-        ),
-        open: readExplicitOption(command, "open", Boolean(opts.open))
-      }, output);
+      await runOpenCommand(
+        task,
+        {
+          dir: readExplicitOption(command, "dir", toOptionalString(opts.dir)),
+          branchPrefix: readExplicitOption(
+            command,
+            "branchPrefix",
+            toOptionalString(opts.branchPrefix),
+          ),
+          open: readExplicitOption(command, "open", Boolean(opts.open)),
+        },
+        output,
+      );
     });
 
   program
@@ -167,21 +200,29 @@ async function main(): Promise<void> {
     .argument("<message>", "Prompt message")
     .option(
       "--dir <path>",
-      "Parent directory for worktrees (default: sibling of repo root)"
+      "Parent directory for worktrees (default: sibling of repo root)",
     )
-    .option("--branch-prefix <prefix>", "Branch prefix for generated branch name")
+    .option(
+      "--branch-prefix <prefix>",
+      "Branch prefix for generated branch name",
+    )
     .option("--copy", "Copy generated prompt to clipboard")
     .action(async (task: string, message: string, opts, command: Command) => {
       const output = createOutput(readGlobalOutputOptions(command));
-      await runPromptCommand(task, message, {
-        dir: readExplicitOption(command, "dir", toOptionalString(opts.dir)),
-        branchPrefix: readExplicitOption(
-          command,
-          "branchPrefix",
-          toOptionalString(opts.branchPrefix)
-        ),
-        copy: readExplicitOption(command, "copy", Boolean(opts.copy))
-      }, output);
+      await runPromptCommand(
+        task,
+        message,
+        {
+          dir: readExplicitOption(command, "dir", toOptionalString(opts.dir)),
+          branchPrefix: readExplicitOption(
+            command,
+            "branchPrefix",
+            toOptionalString(opts.branchPrefix),
+          ),
+          copy: readExplicitOption(command, "copy", Boolean(opts.copy)),
+        },
+        output,
+      );
     });
 
   await program.parseAsync(process.argv);
@@ -190,7 +231,7 @@ async function main(): Promise<void> {
 main().catch((error) => {
   const output = createOutput({
     json: process.argv.includes("--json"),
-    quiet: process.argv.includes("--quiet") || process.argv.includes("-q")
+    quiet: process.argv.includes("--quiet") || process.argv.includes("-q"),
   });
   const message = toErrorMessage(error);
   output.error(message);
@@ -204,7 +245,7 @@ function isExplicitOptionSource(source: string | undefined): boolean {
 function readExplicitOption<T>(
   command: Command,
   optionName: string,
-  value: T
+  value: T,
 ): T | undefined {
   const source = command.getOptionValueSource(optionName);
   return isExplicitOptionSource(source) ? value : undefined;
@@ -230,6 +271,6 @@ function readGlobalOutputOptions(command: Command): {
 
   return {
     quiet: Boolean(options.quiet),
-    json: Boolean(options.json)
+    json: Boolean(options.json),
   };
 }

@@ -15,7 +15,7 @@ export interface OpenCommandOptions {
 export async function runOpenCommand(
   task: string,
   options: OpenCommandOptions,
-  output: Output = createOutput()
+  output: Output = createOutput(),
 ): Promise<void> {
   const repoContext = await resolveRepoContext();
   const resolved = await resolveOpenConfig(repoContext.repoRoot, options);
@@ -25,7 +25,7 @@ export async function runOpenCommand(
     repoContext.repoRoot,
     repoContext.repoName,
     taskSlug,
-    resolved.dir
+    resolved.dir,
   );
 
   if (!(await pathExists(worktreePath))) {
@@ -42,7 +42,7 @@ export async function runOpenCommand(
     } catch (error) {
       if (isMissingExecutableError(error)) {
         output.warn(
-          "VS Code CLI `code` was not found in PATH. Install it from VS Code command palette: 'Shell Command: Install code command in PATH'."
+          "VS Code CLI `code` was not found in PATH. Install it from VS Code command palette: 'Shell Command: Install code command in PATH'.",
         );
       } else {
         throw error;
@@ -55,6 +55,6 @@ export async function runOpenCommand(
   output.event("worktree.opened", {
     path: worktreePath,
     branch: branchName,
-    opened
+    opened,
   });
 }

@@ -8,7 +8,7 @@ export interface BuildWorktreeAddArgsInput {
 }
 
 export function buildWorktreeAddArgs(
-  input: BuildWorktreeAddArgsInput
+  input: BuildWorktreeAddArgsInput,
 ): string[] {
   if (input.localBranchExists) {
     return ["worktree", "add", input.worktreePath, input.branchName];
@@ -25,6 +25,6 @@ export function buildWorktreeAddArgs(
     "-b",
     input.branchName,
     input.worktreePath,
-    startPoint
+    startPoint,
   ];
 }

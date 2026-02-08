@@ -10,8 +10,8 @@ describe("buildWorktreeAddArgs", () => {
         worktreePath: "/tmp/repo-task-a",
         baseRef: "origin/main",
         localBranchExists: true,
-        remoteBranchExists: true
-      })
+        remoteBranchExists: true,
+      }),
     ).toEqual(["worktree", "add", "/tmp/repo-task-a", "codex/task-a"]);
   });
 
@@ -22,15 +22,15 @@ describe("buildWorktreeAddArgs", () => {
         worktreePath: "/tmp/repo-task-a",
         baseRef: "origin/main",
         localBranchExists: false,
-        remoteBranchExists: true
-      })
+        remoteBranchExists: true,
+      }),
     ).toEqual([
       "worktree",
       "add",
       "-b",
       "codex/task-a",
       "/tmp/repo-task-a",
-      "origin/codex/task-a"
+      "origin/codex/task-a",
     ]);
   });
 
@@ -42,15 +42,15 @@ describe("buildWorktreeAddArgs", () => {
         baseRef: "upstream/main",
         localBranchExists: false,
         remoteBranchExists: true,
-        remoteName: "upstream"
-      })
+        remoteName: "upstream",
+      }),
     ).toEqual([
       "worktree",
       "add",
       "-b",
       "codex/task-a",
       "/tmp/repo-task-a",
-      "upstream/codex/task-a"
+      "upstream/codex/task-a",
     ]);
   });
 
@@ -61,15 +61,15 @@ describe("buildWorktreeAddArgs", () => {
         worktreePath: "/tmp/repo-task-a",
         baseRef: "origin/main",
         localBranchExists: false,
-        remoteBranchExists: false
-      })
+        remoteBranchExists: false,
+      }),
     ).toEqual([
       "worktree",
       "add",
       "-b",
       "codex/task-a",
       "/tmp/repo-task-a",
-      "origin/main"
+      "origin/main",
     ]);
   });
 });

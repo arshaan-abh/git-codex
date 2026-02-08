@@ -23,14 +23,14 @@ export function parseEnvGlobs(globsInput: string): string[] {
     globsInput
       .split(",")
       .map((entry) => entry.trim())
-      .filter(Boolean)
+      .filter(Boolean),
   );
 
   return [...unique];
 }
 
 export async function copyEnvLikeFiles(
-  options: CopyEnvLikeFilesOptions
+  options: CopyEnvLikeFilesOptions,
 ): Promise<CopyEnvLikeFilesResult> {
   const matches = await fg(options.globs, {
     cwd: options.repoRoot,
@@ -38,7 +38,7 @@ export async function copyEnvLikeFiles(
     onlyFiles: true,
     unique: true,
     followSymbolicLinks: false,
-    suppressErrors: true
+    suppressErrors: true,
   });
 
   const rootOnlyMatches = matches
@@ -67,6 +67,6 @@ export async function copyEnvLikeFiles(
   return {
     matched: rootOnlyMatches,
     copied,
-    skipped
+    skipped,
   };
 }

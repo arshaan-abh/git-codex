@@ -9,21 +9,24 @@ export interface RepoContext {
 }
 
 export async function resolveRepoContext(
-  cwd = process.cwd()
+  cwd = process.cwd(),
 ): Promise<RepoContext> {
-  const repoRootRaw = await runGitCapture(["rev-parse", "--show-toplevel"], cwd);
+  const repoRootRaw = await runGitCapture(
+    ["rev-parse", "--show-toplevel"],
+    cwd,
+  );
   const repoRoot = path.resolve(repoRootRaw.trim());
 
   return {
     repoRoot,
     repoName: path.basename(repoRoot),
-    parentDir: path.dirname(repoRoot)
+    parentDir: path.dirname(repoRoot),
   };
 }
 
 export function resolveWorktreeParentDir(
   repoRoot: string,
-  dirOverride?: string
+  dirOverride?: string,
 ): string {
   if (!dirOverride) {
     return path.dirname(repoRoot);
@@ -38,7 +41,7 @@ export function resolveWorktreePath(
   repoRoot: string,
   repoName: string,
   taskSlug: string,
-  dirOverride?: string
+  dirOverride?: string,
 ): string {
   const parentDir = resolveWorktreeParentDir(repoRoot, dirOverride);
   return path.resolve(parentDir, `${repoName}-${taskSlug}`);

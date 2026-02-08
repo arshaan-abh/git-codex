@@ -3,25 +3,21 @@
   "version": "0.1.0",
   "description": "Git subcommand for task-oriented worktrees and multi-agent parallel workflows.",
   "license": "MIT",
-  "packageManager": "pnpm@10.28.2",
   "type": "module",
   "bin": {
-    "git-codex": "dist/cli.js",
-    "codex-wt": "dist/cli.js"
+    "codex-wt": "dist/cli.js",
+    "git-codex": "dist/cli.js"
   },
   "files": [
     "dist"
   ],
-  "engines": {
-    "node": ">=20.0.0"
-  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "node -e \"import('node:fs/promises').then(fs=>fs.rm('dist',{recursive:true,force:true}))\"",
     "dev": "tsx src/cli.ts",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "commander": "^14.0.1",
@@ -30,8 +26,15 @@
   },
   "devDependencies": {
     "@types/node": "^24.6.0",
+    "prettier": "3.8.1",
+    "prettier-plugin-organize-imports": "4.3.0",
+    "prettier-plugin-packagejson": "3.0.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
+  },
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=20.0.0"
   }
 }

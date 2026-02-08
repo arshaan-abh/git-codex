@@ -10,7 +10,7 @@ import {
   doesLocalBranchExist,
   fetchRemoteTrackingBranch,
   getRemoteBranchState,
-  runGitStreamWithOptions
+  runGitStreamWithOptions,
 } from "../lib/git.js";
 import { createOutput, type Output } from "../lib/output.js";
 import { resolveRepoContext, resolveWorktreePath } from "../lib/repo.js";
@@ -36,7 +36,7 @@ export interface AddCommandOptions {
 export async function runAddCommand(
   task: string,
   options: AddCommandOptions,
-  output: Output = createOutput()
+  output: Output = createOutput(),
 ): Promise<void> {
   const repoContext = await resolveRepoContext();
   const resolved = await resolveAddConfig(repoContext.repoRoot, options);
@@ -46,7 +46,7 @@ export async function runAddCommand(
     repoContext.repoRoot,
     repoContext.repoName,
     taskSlug,
-    resolved.dir
+    resolved.dir,
   );
 
   if (await pathExists(worktreePath)) {
@@ -56,24 +56,34 @@ export async function runAddCommand(
   if (resolved.fetch) {
     output.info("Fetching latest refs...");
     await runGitStreamWithOptions(["fetch"], repoContext.repoRoot, {
-      quiet: output.quiet || output.json
+      quiet: output.quiet || output.json,
     });
   }
 
   const remoteName = inferRemoteNameFromRef(resolved.base);
-  const branchExists = await doesLocalBranchExist(repoContext.repoRoot, branchName);
+  const branchExists = await doesLocalBranchExist(
+    repoContext.repoRoot,
+    branchName,
+  );
   const remoteState = branchExists
     ? {
         trackingRefExists: false,
-        exists: false
+        exists: false,
       }
     : await getRemoteBranchState(repoContext.repoRoot, branchName, remoteName);
 
   if (remoteState.exists && !remoteState.trackingRefExists) {
-    output.info(`Fetching remote branch reference ${remoteName}/${branchName}...`);
-    await fetchRemoteTrackingBranch(repoContext.repoRoot, branchName, remoteName, {
-      quiet: output.quiet || output.json
-    });
+    output.info(
+      `Fetching remote branch reference ${remoteName}/${branchName}...`,
+    );
+    await fetchRemoteTrackingBranch(
+      repoContext.repoRoot,
+      branchName,
+      remoteName,
+      {
+        quiet: output.quiet || output.json,
+      },
+    );
   }
 
   const worktreeAddArgs = buildWorktreeAddArgs({
@@ -82,11 +92,11 @@ export async function runAddCommand(
     baseRef: resolved.base,
     localBranchExists: branchExists,
     remoteBranchExists: remoteState.exists,
-    remoteName
+    remoteName,
   });
 
   await runGitStreamWithOptions(worktreeAddArgs, repoContext.repoRoot, {
-    quiet: output.quiet || output.json
+    quiet: output.quiet || output.json,
   });
 
   if (resolved.copyEnv) {
@@ -95,7 +105,7 @@ export async function runAddCommand(
       repoRoot: repoContext.repoRoot,
       worktreePath,
       globs: envGlobs,
-      overwrite: resolved.overwriteEnv
+      overwrite: resolved.overwriteEnv,
     });
 
     if (copyResult.matched.length === 0) {
@@ -115,7 +125,7 @@ export async function runAddCommand(
     const templateType = normalizeTemplateType(resolved.templateType);
     const templateSource = await loadOptionalTemplateSource(
       repoContext.repoRoot,
-      resolved.templateFile
+      resolved.templateFile,
     );
     const templateResult = await writeTaskTemplate({
       worktreePath,
@@ -124,17 +134,17 @@ export async function runAddCommand(
         task,
         taskSlug,
         branch: branchName,
-        worktreePath
+        worktreePath,
       },
       templateSource,
-      overwrite: resolved.overwriteTemplate
+      overwrite: resolved.overwriteTemplate,
     });
 
     if (templateResult.created) {
       output.info(`Generated ${templateResult.templatePath}`);
     } else {
       output.info(
-        `Skipped ${templateResult.templatePath} (already exists; use --overwrite-template to replace)`
+        `Skipped ${templateResult.templatePath} (already exists; use --overwrite-template to replace)`,
       );
     }
 
@@ -142,7 +152,7 @@ export async function runAddCommand(
       path: templateResult.templatePath,
       created: templateResult.created,
       overwritten: templateResult.overwritten,
-      templateType
+      templateType,
     });
   }
 
@@ -153,7 +163,7 @@ export async function runAddCommand(
     } catch (error) {
       if (isMissingExecutableError(error)) {
         output.warn(
-          "VS Code CLI `code` was not found in PATH. Install it from VS Code command palette: 'Shell Command: Install code command in PATH'."
+          "VS Code CLI `code` was not found in PATH. Install it from VS Code command palette: 'Shell Command: Install code command in PATH'.",
         );
       } else {
         throw error;
@@ -165,7 +175,7 @@ export async function runAddCommand(
   output.info(`Branch: ${branchName}`);
   output.event("worktree.created", {
     path: worktreePath,
-    branch: branchName
+    branch: branchName,
   });
 }
 
@@ -190,7 +200,7 @@ function inferRemoteNameFromRef(ref: string): string {
 
 async function loadOptionalTemplateSource(
   repoRoot: string,
-  templateFile?: string
+  templateFile?: string,
 ): Promise<string | undefined> {
   if (!templateFile) {
     return undefined;

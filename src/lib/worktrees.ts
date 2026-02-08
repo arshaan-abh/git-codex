@@ -34,7 +34,7 @@ export function parseWorktreeListPorcelain(output: string): WorktreeEntry[] {
         worktree: value,
         detached: false,
         bare: false,
-        locked: false
+        locked: false,
       };
       continue;
     }

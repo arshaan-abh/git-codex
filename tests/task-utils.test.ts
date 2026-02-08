@@ -1,13 +1,13 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { parseEnvGlobs } from "../src/lib/env-files.js";
+import { resolveWorktreePath } from "../src/lib/repo.js";
 import {
   buildBranchName,
   normalizeBranchPrefix,
-  toTaskSlug
+  toTaskSlug,
 } from "../src/lib/task-utils.js";
-import { parseEnvGlobs } from "../src/lib/env-files.js";
-import { resolveWorktreePath } from "../src/lib/repo.js";
 
 describe("task-utils", () => {
   it("normalizes task slugs for branch and directory safety", () => {
@@ -29,18 +29,18 @@ describe("task-utils", () => {
     expect(parseEnvGlobs(".env,.env.*,.npmrc")).toEqual([
       ".env",
       ".env.*",
-      ".npmrc"
+      ".npmrc",
     ]);
   });
 
   it("uses repo sibling by default and custom dir when specified", () => {
     const repoRoot = path.resolve("C:/tmp/my-repo");
     expect(resolveWorktreePath(repoRoot, "my-repo", "task-a")).toBe(
-      path.resolve("C:/tmp/my-repo-task-a")
+      path.resolve("C:/tmp/my-repo-task-a"),
     );
 
     expect(
-      resolveWorktreePath(repoRoot, "my-repo", "task-a", ".worktrees")
+      resolveWorktreePath(repoRoot, "my-repo", "task-a", ".worktrees"),
     ).toBe(path.resolve("C:/tmp/my-repo/.worktrees/my-repo-task-a"));
   });
 });

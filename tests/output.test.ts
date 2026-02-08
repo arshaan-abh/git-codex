@@ -10,8 +10,8 @@ describe("output", () => {
       { quiet: true },
       {
         stdout: (chunk) => stdout.push(chunk),
-        stderr: (chunk) => stderr.push(chunk)
-      }
+        stderr: (chunk) => stderr.push(chunk),
+      },
     );
 
     output.info("hello");
@@ -30,29 +30,29 @@ describe("output", () => {
       { json: true },
       {
         stdout: (chunk) => stdout.push(chunk),
-        stderr: (chunk) => stderr.push(chunk)
-      }
+        stderr: (chunk) => stderr.push(chunk),
+      },
     );
 
     output.info("hello", { task: "a" });
     output.event("worktree.created", {
-      path: "/tmp/repo-a"
+      path: "/tmp/repo-a",
     });
     output.error("failure", { code: 7 });
 
     expect(JSON.parse(stdout[0] ?? "{}")).toEqual({
       level: "info",
       message: "hello",
-      task: "a"
+      task: "a",
     });
     expect(JSON.parse(stdout[1] ?? "{}")).toEqual({
       event: "worktree.created",
-      path: "/tmp/repo-a"
+      path: "/tmp/repo-a",
     });
     expect(JSON.parse(stderr[0] ?? "{}")).toEqual({
       level: "error",
       message: "failure",
-      code: 7
+      code: 7,
     });
   });
 });

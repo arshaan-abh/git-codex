@@ -18,7 +18,7 @@ export async function copyToClipboard(text: string): Promise<void> {
   const linuxCandidates: Array<[string, string[]]> = [
     ["wl-copy", []],
     ["xclip", ["-selection", "clipboard"]],
-    ["xsel", ["--clipboard", "--input"]]
+    ["xsel", ["--clipboard", "--input"]],
   ];
 
   for (const [binary, args] of linuxCandidates) {
@@ -35,18 +35,18 @@ export async function copyToClipboard(text: string): Promise<void> {
   }
 
   throw new Error(
-    "No clipboard utility found. Install wl-copy, xclip, or xsel to use --copy."
+    "No clipboard utility found. Install wl-copy, xclip, or xsel to use --copy.",
   );
 }
 
 async function runClipboardCommand(
   binary: string,
   args: string[],
-  text: string
+  text: string,
 ): Promise<void> {
   await execa(binary, args, {
     input: text,
-    reject: true
+    reject: true,
   });
 }
 

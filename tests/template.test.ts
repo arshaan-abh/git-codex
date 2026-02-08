@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   normalizeTemplateType,
-  renderTaskTemplate
+  renderTaskTemplate,
 } from "../src/lib/template.js";
 
 describe("renderTaskTemplate", () => {
@@ -12,9 +12,9 @@ describe("renderTaskTemplate", () => {
         task: "Fix auth",
         taskSlug: "fix-auth",
         branch: "codex/fix-auth",
-        worktreePath: "/tmp/repo-fix-auth"
+        worktreePath: "/tmp/repo-fix-auth",
       },
-      undefined
+      undefined,
     );
 
     expect(rendered).toContain("Task: Fix auth");
@@ -30,10 +30,10 @@ describe("renderTaskTemplate", () => {
         task: "Fix auth",
         taskSlug: "fix-auth",
         branch: "codex/fix-auth",
-        worktreePath: "/tmp/repo-fix-auth"
+        worktreePath: "/tmp/repo-fix-auth",
       },
       undefined,
-      "bugfix"
+      "bugfix",
     );
 
     expect(rendered).toContain("## Reproduction");
@@ -47,10 +47,10 @@ describe("renderTaskTemplate", () => {
         task: "New dashboard",
         taskSlug: "new-dashboard",
         branch: "codex/new-dashboard",
-        worktreePath: "/tmp/repo-new-dashboard"
+        worktreePath: "/tmp/repo-new-dashboard",
       },
       undefined,
-      "feature"
+      "feature",
     );
 
     expect(rendered).toContain("## Feature Scope");
@@ -64,13 +64,13 @@ describe("renderTaskTemplate", () => {
         task: "Investigate flaky tests",
         taskSlug: "investigate-flaky-tests",
         branch: "cfg/investigate-flaky-tests",
-        worktreePath: "/tmp/repo-investigate"
+        worktreePath: "/tmp/repo-investigate",
       },
-      "T={{task}}|S={{taskSlug}}|B={{branch}}|W={{worktreePath}}"
+      "T={{task}}|S={{taskSlug}}|B={{branch}}|W={{worktreePath}}",
     );
 
     expect(rendered).toBe(
-      "T=Investigate flaky tests|S=investigate-flaky-tests|B=cfg/investigate-flaky-tests|W=/tmp/repo-investigate"
+      "T=Investigate flaky tests|S=investigate-flaky-tests|B=cfg/investigate-flaky-tests|W=/tmp/repo-investigate",
     );
   });
 
@@ -83,7 +83,7 @@ describe("renderTaskTemplate", () => {
 
   it("throws for unsupported template types", () => {
     expect(() => normalizeTemplateType("unknown")).toThrow(
-      "Invalid template type"
+      "Invalid template type",
     );
   });
 });

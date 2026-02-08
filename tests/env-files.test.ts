@@ -37,7 +37,7 @@ describe("copyEnvLikeFiles", () => {
       repoRoot,
       worktreePath,
       globs: [".env", ".env.*"],
-      overwrite: false
+      overwrite: false,
     });
 
     expect(result.matched).toEqual([".env", ".env.local"]);
@@ -62,7 +62,7 @@ describe("copyEnvLikeFiles", () => {
       repoRoot,
       worktreePath,
       globs: [".env"],
-      overwrite: false
+      overwrite: false,
     });
 
     expect(result.matched).toEqual([".env"]);

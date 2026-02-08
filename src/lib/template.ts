@@ -92,42 +92,51 @@ Worktree: {{worktreePath}}
 const BUILT_IN_TEMPLATES: Record<TaskTemplateType, string> = {
   default: DEFAULT_TASK_TEMPLATE,
   bugfix: BUGFIX_TASK_TEMPLATE,
-  feature: FEATURE_TASK_TEMPLATE
+  feature: FEATURE_TASK_TEMPLATE,
 };
 
-export function normalizeTemplateType(type: string | undefined): TaskTemplateType {
+export function normalizeTemplateType(
+  type: string | undefined,
+): TaskTemplateType {
   const candidate = (type ?? "default").trim().toLowerCase();
 
-  if (candidate === "default" || candidate === "bugfix" || candidate === "feature") {
+  if (
+    candidate === "default" ||
+    candidate === "bugfix" ||
+    candidate === "feature"
+  ) {
     return candidate;
   }
 
   throw new Error(
-    `Invalid template type "${type}". Expected one of: default, bugfix, feature.`
+    `Invalid template type "${type}". Expected one of: default, bugfix, feature.`,
   );
 }
 
 export function renderTaskTemplate(
   variables: TaskTemplateVariables,
   templateSource?: string,
-  templateType: TaskTemplateType = "default"
+  templateType: TaskTemplateType = "default",
 ): string {
   const source = templateSource ?? BUILT_IN_TEMPLATES[templateType];
   const replacements: Record<string, string> = {
     task: variables.task,
     taskSlug: variables.taskSlug,
     branch: variables.branch,
-    worktreePath: variables.worktreePath
+    worktreePath: variables.worktreePath,
   };
 
-  return source.replace(/\{\{\s*(task|taskSlug|branch|worktreePath)\s*\}\}/g, (_, key) => {
-    const value = replacements[key];
-    return value ?? "";
-  });
+  return source.replace(
+    /\{\{\s*(task|taskSlug|branch|worktreePath)\s*\}\}/g,
+    (_, key) => {
+      const value = replacements[key];
+      return value ?? "";
+    },
+  );
 }
 
 export async function writeTaskTemplate(
-  options: WriteTaskTemplateOptions
+  options: WriteTaskTemplateOptions,
 ): Promise<WriteTaskTemplateResult> {
   const codexDir = path.join(options.worktreePath, ".codex");
   const templatePath = path.join(codexDir, "INSTRUCTIONS.md");
@@ -137,7 +146,7 @@ export async function writeTaskTemplate(
     return {
       templatePath,
       created: false,
-      overwritten: false
+      overwritten: false,
     };
   }
 
@@ -145,13 +154,13 @@ export async function writeTaskTemplate(
   const rendered = renderTaskTemplate(
     options.variables,
     options.templateSource,
-    options.templateType
+    options.templateType,
   );
   await writeFile(templatePath, rendered, "utf8");
 
   return {
     templatePath,
     created: true,
-    overwritten: exists
+    overwritten: exists,
   };
 }

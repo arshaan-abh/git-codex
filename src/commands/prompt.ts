@@ -15,7 +15,7 @@ export async function runPromptCommand(
   task: string,
   message: string,
   options: PromptCommandOptions,
-  output: Output = createOutput()
+  output: Output = createOutput(),
 ): Promise<void> {
   const repoContext = await resolveRepoContext();
   const resolved = await resolvePromptConfig(repoContext.repoRoot, options);
@@ -25,14 +25,14 @@ export async function runPromptCommand(
     repoContext.repoRoot,
     repoContext.repoName,
     taskSlug,
-    resolved.dir
+    resolved.dir,
   );
   const promptText = buildTaskPrompt({
     task,
     taskSlug,
     branch: branchName,
     worktreePath,
-    message
+    message,
   });
 
   let copied = false;
@@ -48,7 +48,7 @@ export async function runPromptCommand(
       branch: branchName,
       worktreePath,
       copied,
-      prompt: promptText
+      prompt: promptText,
     });
     return;
   }

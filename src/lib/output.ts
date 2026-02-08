@@ -24,19 +24,19 @@ const defaultSink: OutputSink = {
   },
   stderr: (chunk) => {
     process.stderr.write(chunk);
-  }
+  },
 };
 
 export function createOutput(
   options: OutputOptions = {},
-  sink: OutputSink = defaultSink
+  sink: OutputSink = defaultSink,
 ): Output {
   const json = Boolean(options.json);
   const quiet = json ? false : Boolean(options.quiet);
 
   const writeStructured = (
     channel: "stdout" | "stderr",
-    payload: Record<string, unknown>
+    payload: Record<string, unknown>,
   ): void => {
     sink[channel](`${JSON.stringify(payload)}\n`);
   };
@@ -48,7 +48,7 @@ export function createOutput(
   const log = (
     level: "info" | "warn" | "error",
     message: string,
-    fields?: Record<string, unknown>
+    fields?: Record<string, unknown>,
   ): void => {
     const alwaysEmit = level === "error";
     if (!alwaysEmit && quiet) {
@@ -59,7 +59,7 @@ export function createOutput(
       writeStructured(level === "error" ? "stderr" : "stdout", {
         level,
         message,
-        ...(fields ?? {})
+        ...(fields ?? {}),
       });
       return;
     }
@@ -87,7 +87,7 @@ export function createOutput(
       if (json) {
         writeStructured("stdout", {
           level: "info",
-          message
+          message,
         });
         return;
       }
@@ -102,7 +102,7 @@ export function createOutput(
       if (json) {
         writeStructured("stdout", {
           event,
-          ...(fields ?? {})
+          ...(fields ?? {}),
         });
         return;
       }
@@ -112,6 +112,6 @@ export function createOutput(
       } else {
         writeText("stdout", event);
       }
-    }
+    },
   };
 }

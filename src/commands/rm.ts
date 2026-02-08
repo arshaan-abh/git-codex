@@ -16,7 +16,7 @@ export interface RmCommandOptions {
 export async function runRmCommand(
   task: string,
   options: RmCommandOptions,
-  output: Output = createOutput()
+  output: Output = createOutput(),
 ): Promise<void> {
   const repoContext = await resolveRepoContext();
   const resolved = await resolveRmConfig(repoContext.repoRoot, options);
@@ -25,14 +25,14 @@ export async function runRmCommand(
     repoContext.repoRoot,
     repoContext.repoName,
     taskSlug,
-    resolved.dir
+    resolved.dir,
   );
 
   let removedMapping = false;
 
   const removeResult = await runGitStatus(
     ["worktree", "remove", worktreePath],
-    repoContext.repoRoot
+    repoContext.repoRoot,
   );
 
   if (removeResult.exitCode === 0) {
@@ -47,20 +47,23 @@ export async function runRmCommand(
     if (!mappingMissing && resolved.forceDelete) {
       const forceRemoveResult = await runGitStatus(
         ["worktree", "remove", "--force", worktreePath],
-        repoContext.repoRoot
+        repoContext.repoRoot,
       );
 
       if (forceRemoveResult.exitCode === 0) {
         removedMapping = true;
       } else {
-        const forcedMessage = [forceRemoveResult.stderr, forceRemoveResult.stdout]
+        const forcedMessage = [
+          forceRemoveResult.stderr,
+          forceRemoveResult.stdout,
+        ]
           .filter(Boolean)
           .join("\n")
           .trim();
 
         if (!isMissingWorktreeMappingError(forcedMessage)) {
           throw new Error(
-            `Failed to remove worktree mapping for ${worktreePath}\n${forcedMessage || "Unknown git error"}`
+            `Failed to remove worktree mapping for ${worktreePath}\n${forcedMessage || "Unknown git error"}`,
           );
         }
       }
@@ -71,8 +74,8 @@ export async function runRmCommand(
           firstError || "Unknown git error",
           "",
           "Likely causes: VS Code still open, a watcher process still running, or a terminal in that folder.",
-          "Close those and retry, or use --force-delete."
-        ].join("\n")
+          "Close those and retry, or use --force-delete.",
+        ].join("\n"),
       );
     }
   }
@@ -83,31 +86,31 @@ export async function runRmCommand(
         recursive: true,
         force: true,
         maxRetries: 5,
-        retryDelay: 150
+        retryDelay: 150,
       });
     } catch (error) {
       throw new Error(
         [
           `Worktree mapping may be removed, but directory delete failed: ${worktreePath}`,
           toErrorMessage(error),
-          "Close VS Code and any watchers/terminals using this folder, then retry."
-        ].join("\n")
+          "Close VS Code and any watchers/terminals using this folder, then retry.",
+        ].join("\n"),
       );
     }
   }
 
   await runGitStreamWithOptions(["worktree", "prune"], repoContext.repoRoot, {
-    quiet: output.quiet || output.json
+    quiet: output.quiet || output.json,
   });
 
   if (!resolved.forceDelete && (await pathExists(worktreePath))) {
     output.info(`Removed worktree mapping for ${worktreePath}`);
     output.info(
-      "Directory still exists on disk. Use --force-delete to remove it as well."
+      "Directory still exists on disk. Use --force-delete to remove it as well.",
     );
     output.event("worktree.removed", {
       path: worktreePath,
-      mappingOnly: true
+      mappingOnly: true,
     });
     return;
   }
@@ -116,18 +119,18 @@ export async function runRmCommand(
     output.info(`Removed worktree ${worktreePath}`);
     output.event("worktree.removed", {
       path: worktreePath,
-      mappingOnly: false
+      mappingOnly: false,
     });
   } else {
     output.info(`No existing worktree mapping found for ${worktreePath}`);
     output.event("worktree.not_found", {
-      path: worktreePath
+      path: worktreePath,
     });
   }
 }
 
 function isMissingWorktreeMappingError(message: string): boolean {
   return /is not a working tree|is not registered|no such file|does not exist/i.test(
-    message
+    message,
   );
 }

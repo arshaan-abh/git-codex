@@ -35,7 +35,7 @@ export const addDefaults: CodexConfigValues = {
   templateType: "default",
   overwriteTemplate: false,
   fetch: true,
-  open: true
+  open: true,
 };
 
 interface RawConfigShape {
@@ -70,7 +70,7 @@ export function mergeAddConfigLayers(
 
   return {
     ...addDefaults,
-    ...merged
+    ...merged,
   };
 }
 
@@ -89,7 +89,7 @@ export function parseBooleanLike(value: string): boolean | undefined {
 }
 
 export function parseGitConfigMap(
-  entries: ReadonlyMap<string, string>
+  entries: ReadonlyMap<string, string>,
 ): CodexConfigOverrides {
   const normalizedEntries = new Map<string, string>();
   for (const [key, value] of entries.entries()) {
@@ -102,7 +102,9 @@ export function parseGitConfigMap(
   const copyEnv = getBooleanFromString(get("codex.copyenv"));
   const overwriteEnv = getBooleanFromString(get("codex.overwriteenv"));
   const template = getBooleanFromString(get("codex.template"));
-  const overwriteTemplate = getBooleanFromString(get("codex.overwritetemplate"));
+  const overwriteTemplate = getBooleanFromString(
+    get("codex.overwritetemplate"),
+  );
   const templateType = get("codex.templatetype");
   const fetch = getBooleanFromString(get("codex.fetch"));
   const open =
@@ -127,7 +129,7 @@ export function parseGitConfigMap(
 
 export async function resolveAddConfig(
   repoRoot: string,
-  cliOverrides: CodexConfigOverrides
+  cliOverrides: CodexConfigOverrides,
 ): Promise<CodexConfigValues> {
   const layers = await loadConfigLayers(repoRoot);
   return mergeAddConfigLayers(addDefaults, ...layers, cliOverrides);
@@ -138,7 +140,7 @@ export async function resolveRmConfig(
   cliOverrides: {
     dir?: string;
     forceDelete?: boolean;
-  }
+  },
 ): Promise<{
   dir?: string;
   forceDelete: boolean;
@@ -147,7 +149,7 @@ export async function resolveRmConfig(
 
   return {
     dir: cliOverrides.dir ?? addConfig.dir,
-    forceDelete: cliOverrides.forceDelete ?? false
+    forceDelete: cliOverrides.forceDelete ?? false,
   };
 }
 
@@ -156,7 +158,7 @@ export async function resolveListConfig(
   cliOverrides: {
     branchPrefix?: string;
     pretty?: boolean;
-  }
+  },
 ): Promise<{
   branchPrefix: string;
   pretty: boolean;
@@ -165,7 +167,7 @@ export async function resolveListConfig(
 
   return {
     branchPrefix: cliOverrides.branchPrefix ?? addConfig.branchPrefix,
-    pretty: cliOverrides.pretty ?? false
+    pretty: cliOverrides.pretty ?? false,
   };
 }
 
@@ -175,7 +177,7 @@ export async function resolveOpenConfig(
     dir?: string;
     branchPrefix?: string;
     open?: boolean;
-  }
+  },
 ): Promise<{
   dir?: string;
   branchPrefix: string;
@@ -186,7 +188,7 @@ export async function resolveOpenConfig(
   return {
     dir: cliOverrides.dir ?? addConfig.dir,
     branchPrefix: cliOverrides.branchPrefix ?? addConfig.branchPrefix,
-    open: cliOverrides.open ?? true
+    open: cliOverrides.open ?? true,
   };
 }
 
@@ -195,7 +197,7 @@ export async function resolvePromptConfig(
   cliOverrides: {
     dir?: string;
     branchPrefix?: string;
-  }
+  },
 ): Promise<{
   dir?: string;
   branchPrefix: string;
@@ -204,24 +206,28 @@ export async function resolvePromptConfig(
 
   return {
     dir: cliOverrides.dir ?? addConfig.dir,
-    branchPrefix: cliOverrides.branchPrefix ?? addConfig.branchPrefix
+    branchPrefix: cliOverrides.branchPrefix ?? addConfig.branchPrefix,
   };
 }
 
-async function loadConfigLayers(repoRoot: string): Promise<CodexConfigOverrides[]> {
+async function loadConfigLayers(
+  repoRoot: string,
+): Promise<CodexConfigOverrides[]> {
   const globalGit = await readGitConfig("global", repoRoot);
   const globalFile = await readJsonConfig(
-    path.join(os.homedir(), ".config", "git-codex", "config.json")
+    path.join(os.homedir(), ".config", "git-codex", "config.json"),
   );
   const repoGit = await readGitConfig("local", repoRoot);
-  const repoFile = await readJsonConfig(path.join(repoRoot, ".git-codexrc.json"));
+  const repoFile = await readJsonConfig(
+    path.join(repoRoot, ".git-codexrc.json"),
+  );
 
   return [globalGit, globalFile, repoGit, repoFile];
 }
 
 async function readGitConfig(
   scope: "local" | "global",
-  repoRoot: string
+  repoRoot: string,
 ): Promise<CodexConfigOverrides> {
   const args =
     scope === "global"
@@ -230,7 +236,7 @@ async function readGitConfig(
 
   const result = await execa("git", args, {
     cwd: repoRoot,
-    reject: false
+    reject: false,
   });
 
   if (result.exitCode !== 0) {
@@ -258,7 +264,9 @@ async function readGitConfig(
   return parseGitConfigMap(map);
 }
 
-async function readJsonConfig(configPath: string): Promise<CodexConfigOverrides> {
+async function readJsonConfig(
+  configPath: string,
+): Promise<CodexConfigOverrides> {
   if (!(await pathExists(configPath))) {
     return {};
   }
@@ -270,7 +278,7 @@ async function readJsonConfig(configPath: string): Promise<CodexConfigOverrides>
     parsed = JSON.parse(raw);
   } catch (error) {
     throw new Error(
-      `Invalid JSON in ${configPath}: ${(error as Error).message || "Unable to parse"}`
+      `Invalid JSON in ${configPath}: ${(error as Error).message || "Unable to parse"}`,
     );
   }
 
@@ -279,7 +287,7 @@ async function readJsonConfig(configPath: string): Promise<CodexConfigOverrides>
 
 function parseJsonConfigObject(
   raw: unknown,
-  sourcePath: string
+  sourcePath: string,
 ): CodexConfigOverrides {
   if (!isRecord(raw)) {
     throw new Error(`${sourcePath} must contain a JSON object.`);
@@ -304,17 +312,17 @@ function parseJsonConfigObject(
     overwriteTemplate: readBoolean(
       config.overwriteTemplate,
       "overwriteTemplate",
-      sourcePath
+      sourcePath,
     ),
     fetch: readBoolean(config.fetch, "fetch", sourcePath),
-    open
+    open,
   };
 }
 
 function readString(
   value: unknown,
   fieldName: string,
-  sourcePath: string
+  sourcePath: string,
 ): string | undefined {
   if (value === undefined) {
     return undefined;
@@ -331,7 +339,7 @@ function readString(
 function readBoolean(
   value: unknown,
   fieldName: string,
-  sourcePath: string
+  sourcePath: string,
 ): boolean | undefined {
   if (value === undefined) {
     return undefined;
@@ -346,7 +354,7 @@ function readBoolean(
 
 function normalizeEnvGlobs(
   value: unknown,
-  sourcePath: string
+  sourcePath: string,
 ): string | undefined {
   if (value === undefined) {
     return undefined;
@@ -362,7 +370,7 @@ function normalizeEnvGlobs(
       .map((entry) => {
         if (typeof entry !== "string") {
           throw new Error(
-            `${sourcePath}: "envGlobs" array entries must all be strings.`
+            `${sourcePath}: "envGlobs" array entries must all be strings.`,
           );
         }
 
@@ -373,7 +381,9 @@ function normalizeEnvGlobs(
     return normalized.length > 0 ? normalized.join(",") : undefined;
   }
 
-  throw new Error(`${sourcePath}: "envGlobs" must be a string or string array.`);
+  throw new Error(
+    `${sourcePath}: "envGlobs" must be a string or string array.`,
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -391,7 +401,7 @@ function getBooleanFromString(value: string | undefined): boolean | undefined {
 function assignIfDefined<K extends keyof CodexConfigValues>(
   target: CodexConfigOverrides,
   key: K,
-  value: CodexConfigValues[K] | undefined
+  value: CodexConfigValues[K] | undefined,
 ): void {
   if (value !== undefined) {
     target[key] = value;
