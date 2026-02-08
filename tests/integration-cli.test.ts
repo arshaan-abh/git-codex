@@ -15,9 +15,12 @@ const cliPath = path.join(workspaceRoot, "dist", "cli.js");
 
 const tempRoots: string[] = [];
 
-beforeAll(async () => {
-  await execa("pnpm", ["build"], { cwd: workspaceRoot });
-});
+beforeAll(
+  async () => {
+    await execa("pnpm", ["build"], { cwd: workspaceRoot });
+  },
+  120_000
+);
 
 afterAll(async () => {
   while (tempRoots.length > 0) {
@@ -69,6 +72,57 @@ describe("cli integration", () => {
         "--force-delete"
       ]);
 
+      expect(await pathExists(worktreePath)).toBe(false);
+    },
+    120_000
+  );
+
+  it(
+    "supports open and prompt workflows",
+    async () => {
+      const { repoPath } = await createRepoWithOrigin();
+
+      const addResult = await runCli(repoPath, [
+        "add",
+        "phase4-open",
+        "--json",
+        "--no-open",
+        "--no-fetch",
+        "--no-copy-env"
+      ]);
+      const addEvents = parseJsonLines(addResult.stdout);
+      const createdEvent = getEvent(addEvents, "worktree.created");
+      const worktreePath = String(createdEvent.path);
+
+      const openResult = await runCli(repoPath, [
+        "open",
+        "phase4-open",
+        "--json",
+        "--no-open"
+      ]);
+      const openEvents = parseJsonLines(openResult.stdout);
+      const openedEvent = getEvent(openEvents, "worktree.opened");
+
+      expect(openedEvent.path).toBe(worktreePath);
+      expect(openedEvent.branch).toBe("codex/phase4-open");
+      expect(openedEvent.opened).toBe(false);
+
+      const promptResult = await runCli(repoPath, [
+        "prompt",
+        "phase4-open",
+        "Investigate flaky test and ship fix",
+        "--json"
+      ]);
+      const promptEvents = parseJsonLines(promptResult.stdout);
+      const promptEvent = getEvent(promptEvents, "prompt.generated");
+
+      expect(promptEvent.branch).toBe("codex/phase4-open");
+      expect(String(promptEvent.prompt)).toContain(
+        "Investigate flaky test and ship fix"
+      );
+
+      await runCli(repoPath, ["rm", "phase4-open", "--json", "--force-delete"]);
+      await runGit(repoPath, ["branch", "-D", "codex/phase4-open"]);
       expect(await pathExists(worktreePath)).toBe(false);
     },
     120_000

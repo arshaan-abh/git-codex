@@ -68,6 +68,30 @@ Optional:
 
 In `--json` mode, `list` emits a structured `worktree.list` event with entries.
 
+### `git codex open <task>`
+
+Opens an existing task worktree.
+
+Key flags:
+
+- `--dir <path>` worktree parent directory override
+- `--branch-prefix <prefix>` override expected branch prefix
+- `--no-open` print metadata only (do not launch VS Code)
+
+In `--json` mode, `open` emits `worktree.opened`.
+
+### `git codex prompt <task> <message>`
+
+Generates a task bootstrap prompt including task/branch/worktree metadata.
+
+Key flags:
+
+- `--dir <path>` worktree parent directory override
+- `--branch-prefix <prefix>` override branch prefix
+- `--copy` copy generated prompt text to clipboard
+
+In `--json` mode, `prompt` emits `prompt.generated`.
+
 ## Phase 2 Config
 
 `git-codex` supports both file-based and git-config-based settings.

@@ -150,6 +150,45 @@ export async function resolveListConfig(
   };
 }
 
+export async function resolveOpenConfig(
+  repoRoot: string,
+  cliOverrides: {
+    dir?: string;
+    branchPrefix?: string;
+    open?: boolean;
+  }
+): Promise<{
+  dir?: string;
+  branchPrefix: string;
+  open: boolean;
+}> {
+  const addConfig = await resolveAddConfig(repoRoot, {});
+
+  return {
+    dir: cliOverrides.dir ?? addConfig.dir,
+    branchPrefix: cliOverrides.branchPrefix ?? addConfig.branchPrefix,
+    open: cliOverrides.open ?? true
+  };
+}
+
+export async function resolvePromptConfig(
+  repoRoot: string,
+  cliOverrides: {
+    dir?: string;
+    branchPrefix?: string;
+  }
+): Promise<{
+  dir?: string;
+  branchPrefix: string;
+}> {
+  const addConfig = await resolveAddConfig(repoRoot, {});
+
+  return {
+    dir: cliOverrides.dir ?? addConfig.dir,
+    branchPrefix: cliOverrides.branchPrefix ?? addConfig.branchPrefix
+  };
+}
+
 async function loadConfigLayers(repoRoot: string): Promise<CodexConfigOverrides[]> {
   const globalGit = await readGitConfig("global", repoRoot);
   const globalFile = await readJsonConfig(

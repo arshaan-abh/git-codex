@@ -4,6 +4,8 @@ import { Command } from "commander";
 
 import { runAddCommand } from "./commands/add.js";
 import { runListCommand } from "./commands/list.js";
+import { runOpenCommand } from "./commands/open.js";
+import { runPromptCommand } from "./commands/prompt.js";
 import { runRmCommand } from "./commands/rm.js";
 import { toErrorMessage } from "./lib/errors.js";
 import { createOutput } from "./lib/output.js";
@@ -103,6 +105,53 @@ async function main(): Promise<void> {
           "branchPrefix",
           toOptionalString(opts.branchPrefix)
         )
+      }, output);
+    });
+
+  program
+    .command("open")
+    .description("Open an existing task worktree.")
+    .argument("<task>", "Task label")
+    .option(
+      "--dir <path>",
+      "Parent directory for worktrees (default: sibling of repo root)"
+    )
+    .option("--branch-prefix <prefix>", "Branch prefix for expected branch name")
+    .option("--no-open", "Only print worktree metadata without opening VS Code")
+    .action(async (task: string, opts, command: Command) => {
+      const output = createOutput(readGlobalOutputOptions(command));
+      await runOpenCommand(task, {
+        dir: readExplicitOption(command, "dir", toOptionalString(opts.dir)),
+        branchPrefix: readExplicitOption(
+          command,
+          "branchPrefix",
+          toOptionalString(opts.branchPrefix)
+        ),
+        open: readExplicitOption(command, "open", Boolean(opts.open))
+      }, output);
+    });
+
+  program
+    .command("prompt")
+    .description("Generate an initial prompt for a task worktree.")
+    .argument("<task>", "Task label")
+    .argument("<message>", "Prompt message")
+    .option(
+      "--dir <path>",
+      "Parent directory for worktrees (default: sibling of repo root)"
+    )
+    .option("--branch-prefix <prefix>", "Branch prefix for generated branch name")
+    .option("--copy", "Copy generated prompt to clipboard")
+    .action(async (task: string, message: string, opts, command: Command) => {
+      const output = createOutput(readGlobalOutputOptions(command));
+      await runPromptCommand(task, message, {
+        dir: readExplicitOption(command, "dir", toOptionalString(opts.dir)),
+        branchPrefix: readExplicitOption(
+          command,
+          "branchPrefix",
+          toOptionalString(opts.branchPrefix)
+        ),
+        copy: readExplicitOption(command, "copy", Boolean(opts.copy))
       }, output);
     });
 
