@@ -13,6 +13,9 @@ export interface CodexConfigValues {
   copyEnv: boolean;
   envGlobs: string;
   overwriteEnv: boolean;
+  template: boolean;
+  templateFile?: string;
+  overwriteTemplate: boolean;
   fetch: boolean;
   open: boolean;
 }
@@ -26,6 +29,9 @@ export const addDefaults: CodexConfigValues = {
   copyEnv: true,
   envGlobs: ".env,.env.*",
   overwriteEnv: false,
+  template: false,
+  templateFile: undefined,
+  overwriteTemplate: false,
   fetch: true,
   open: true
 };
@@ -39,6 +45,9 @@ interface RawConfigShape {
   open?: unknown;
   copyEnv?: unknown;
   overwriteEnv?: unknown;
+  template?: unknown;
+  templateFile?: unknown;
+  overwriteTemplate?: unknown;
   fetch?: unknown;
 }
 
@@ -89,6 +98,8 @@ export function parseGitConfigMap(
 
   const copyEnv = getBooleanFromString(get("codex.copyenv"));
   const overwriteEnv = getBooleanFromString(get("codex.overwriteenv"));
+  const template = getBooleanFromString(get("codex.template"));
+  const overwriteTemplate = getBooleanFromString(get("codex.overwritetemplate"));
   const fetch = getBooleanFromString(get("codex.fetch"));
   const open =
     getBooleanFromString(get("codex.open")) ??
@@ -101,6 +112,9 @@ export function parseGitConfigMap(
     envGlobs: get("codex.envglobs"),
     copyEnv,
     overwriteEnv,
+    template,
+    templateFile: get("codex.templatefile"),
+    overwriteTemplate,
     fetch,
     open
   };
@@ -279,6 +293,13 @@ function parseJsonConfigObject(
     envGlobs,
     copyEnv: readBoolean(config.copyEnv, "copyEnv", sourcePath),
     overwriteEnv: readBoolean(config.overwriteEnv, "overwriteEnv", sourcePath),
+    template: readBoolean(config.template, "template", sourcePath),
+    templateFile: readString(config.templateFile, "templateFile", sourcePath),
+    overwriteTemplate: readBoolean(
+      config.overwriteTemplate,
+      "overwriteTemplate",
+      sourcePath
+    ),
     fetch: readBoolean(config.fetch, "fetch", sourcePath),
     open
   };

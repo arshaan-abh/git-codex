@@ -35,6 +35,15 @@ async function main(): Promise<void> {
       "Comma-separated env-like file globs from repo root"
     )
     .option("--overwrite-env", "Overwrite env-like files in existing worktree")
+    .option("--template", "Generate .codex/INSTRUCTIONS.md in the new worktree")
+    .option(
+      "--template-file <path>",
+      "Custom template source file (supports {{task}}, {{taskSlug}}, {{branch}}, {{worktreePath}})"
+    )
+    .option(
+      "--overwrite-template",
+      "Overwrite existing .codex/INSTRUCTIONS.md when generating template"
+    )
     .option("--no-open", "Do not open a new VS Code window")
     .option("--no-copy-env", "Skip env-like file copy")
     .option("--no-fetch", "Skip git fetch before worktree creation")
@@ -59,6 +68,17 @@ async function main(): Promise<void> {
           command,
           "overwriteEnv",
           Boolean(opts.overwriteEnv)
+        ),
+        template: readExplicitOption(command, "template", Boolean(opts.template)),
+        templateFile: readExplicitOption(
+          command,
+          "templateFile",
+          toOptionalString(opts.templateFile)
+        ),
+        overwriteTemplate: readExplicitOption(
+          command,
+          "overwriteTemplate",
+          Boolean(opts.overwriteTemplate)
         ),
         fetch: readExplicitOption(command, "fetch", Boolean(opts.fetch))
       }, output);

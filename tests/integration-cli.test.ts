@@ -129,6 +129,55 @@ describe("cli integration", () => {
   );
 
   it(
+    "can generate per-task .codex instruction template during add",
+    async () => {
+      const { repoPath } = await createRepoWithOrigin();
+
+      const templateSource = [
+        "# Task Instructions",
+        "Task={{task}}",
+        "TaskSlug={{taskSlug}}",
+        "Branch={{branch}}",
+        "Worktree={{worktreePath}}"
+      ].join("\n");
+      await writeFile(path.join(repoPath, "task-template.md"), templateSource);
+
+      const addResult = await runCli(repoPath, [
+        "add",
+        "phase4-template",
+        "--json",
+        "--no-open",
+        "--no-fetch",
+        "--no-copy-env",
+        "--template",
+        "--template-file",
+        "task-template.md"
+      ]);
+      const addEvents = parseJsonLines(addResult.stdout);
+      const createdEvent = getEvent(addEvents, "worktree.created");
+      const worktreePath = String(createdEvent.path);
+
+      const templatePath = path.join(worktreePath, ".codex", "INSTRUCTIONS.md");
+      expect(await pathExists(templatePath)).toBe(true);
+      const renderedTemplate = await readFile(templatePath, "utf8");
+
+      expect(renderedTemplate).toContain("Task=phase4-template");
+      expect(renderedTemplate).toContain("TaskSlug=phase4-template");
+      expect(renderedTemplate).toContain("Branch=codex/phase4-template");
+
+      await runCli(repoPath, [
+        "rm",
+        "phase4-template",
+        "--json",
+        "--force-delete"
+      ]);
+      await runGit(repoPath, ["branch", "-D", "codex/phase4-template"]);
+      expect(await pathExists(worktreePath)).toBe(false);
+    },
+    120_000
+  );
+
+  it(
     "uses repo config defaults for add/rm/list",
     async () => {
       const { repoPath } = await createRepoWithOrigin();

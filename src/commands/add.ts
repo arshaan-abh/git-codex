@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 import { buildWorktreeAddArgs } from "../lib/add-strategy.js";
 import { resolveAddConfig } from "../lib/config.js";
 import { copyEnvLikeFiles, parseEnvGlobs } from "../lib/env-files.js";
@@ -12,6 +15,7 @@ import {
 import { createOutput, type Output } from "../lib/output.js";
 import { resolveRepoContext, resolveWorktreePath } from "../lib/repo.js";
 import { buildBranchName, toTaskSlug } from "../lib/task-utils.js";
+import { writeTaskTemplate } from "../lib/template.js";
 import { openInVSCode } from "../lib/vscode.js";
 
 export interface AddCommandOptions {
@@ -22,6 +26,9 @@ export interface AddCommandOptions {
   copyEnv?: boolean;
   envGlobs?: string;
   overwriteEnv?: boolean;
+  template?: boolean;
+  templateFile?: string;
+  overwriteTemplate?: boolean;
   fetch?: boolean;
 }
 
@@ -103,6 +110,38 @@ export async function runAddCommand(
     }
   }
 
+  if (resolved.template) {
+    const templateSource = await loadOptionalTemplateSource(
+      repoContext.repoRoot,
+      resolved.templateFile
+    );
+    const templateResult = await writeTaskTemplate({
+      worktreePath,
+      variables: {
+        task,
+        taskSlug,
+        branch: branchName,
+        worktreePath
+      },
+      templateSource,
+      overwrite: resolved.overwriteTemplate
+    });
+
+    if (templateResult.created) {
+      output.info(`Generated ${templateResult.templatePath}`);
+    } else {
+      output.info(
+        `Skipped ${templateResult.templatePath} (already exists; use --overwrite-template to replace)`
+      );
+    }
+
+    output.event("template.generated", {
+      path: templateResult.templatePath,
+      created: templateResult.created,
+      overwritten: templateResult.overwritten
+    });
+  }
+
   if (resolved.open) {
     try {
       await openInVSCode(worktreePath);
@@ -143,4 +182,23 @@ function inferRemoteNameFromRef(ref: string): string {
   }
 
   return "origin";
+}
+
+async function loadOptionalTemplateSource(
+  repoRoot: string,
+  templateFile?: string
+): Promise<string | undefined> {
+  if (!templateFile) {
+    return undefined;
+  }
+
+  const resolvedTemplatePath = path.isAbsolute(templateFile)
+    ? templateFile
+    : path.resolve(repoRoot, templateFile);
+
+  if (!(await pathExists(resolvedTemplatePath))) {
+    throw new Error(`Template file not found: ${resolvedTemplatePath}`);
+  }
+
+  return readFile(resolvedTemplatePath, "utf8");
 }

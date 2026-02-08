@@ -44,6 +44,9 @@ Key flags:
 - `--no-copy-env` skip env copy
 - `--env-globs ".env,.env.*"` customize env-like patterns
 - `--overwrite-env` allow overwriting env-like files
+- `--template` generate `.codex/INSTRUCTIONS.md` for the new task worktree
+- `--template-file <path>` use a custom template file (supports `{{task}}`, `{{taskSlug}}`, `{{branch}}`, `{{worktreePath}}`)
+- `--overwrite-template` replace an existing generated instructions file
 - `--no-fetch` skip `git fetch`
 
 ### `git codex rm <task>`
@@ -104,6 +107,9 @@ Supported keys:
 - `copyEnv`
 - `envGlobs`
 - `overwriteEnv`
+- `template`
+- `templateFile`
+- `overwriteTemplate`
 - `fetch`
 - `open` or `openVsCodeByDefault`
 
@@ -120,6 +126,9 @@ Git config keys:
 - `codex.copyEnv`
 - `codex.envGlobs`
 - `codex.overwriteEnv`
+- `codex.template`
+- `codex.templateFile`
+- `codex.overwriteTemplate`
 - `codex.fetch`
 - `codex.open`
 
@@ -141,6 +150,8 @@ Example `.git-codexrc.json`:
   "fetch": false,
   "copyEnv": true,
   "envGlobs": [".env", ".env.*", ".npmrc"],
+  "template": true,
+  "templateFile": "task-template.md",
   "openVsCodeByDefault": false
 }
 ```
