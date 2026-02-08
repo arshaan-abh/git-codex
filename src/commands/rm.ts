@@ -1,5 +1,6 @@
 import { rm } from "node:fs/promises";
 
+import { resolveRmConfig } from "../lib/config.js";
 import { toErrorMessage } from "../lib/errors.js";
 import { pathExists } from "../lib/fs-utils.js";
 import { runGitStatus, runGitStream } from "../lib/git.js";
@@ -8,7 +9,7 @@ import { toTaskSlug } from "../lib/task-utils.js";
 
 export interface RmCommandOptions {
   dir?: string;
-  forceDelete: boolean;
+  forceDelete?: boolean;
 }
 
 export async function runRmCommand(
@@ -16,12 +17,13 @@ export async function runRmCommand(
   options: RmCommandOptions
 ): Promise<void> {
   const repoContext = await resolveRepoContext();
+  const resolved = await resolveRmConfig(repoContext.repoRoot, options);
   const taskSlug = toTaskSlug(task);
   const worktreePath = resolveWorktreePath(
     repoContext.repoRoot,
     repoContext.repoName,
     taskSlug,
-    options.dir
+    resolved.dir
   );
 
   let removedMapping = false;
@@ -40,7 +42,7 @@ export async function runRmCommand(
       .trim();
     const mappingMissing = isMissingWorktreeMappingError(firstError);
 
-    if (!mappingMissing && options.forceDelete) {
+    if (!mappingMissing && resolved.forceDelete) {
       const forceRemoveResult = await runGitStatus(
         ["worktree", "remove", "--force", worktreePath],
         repoContext.repoRoot
@@ -73,7 +75,7 @@ export async function runRmCommand(
     }
   }
 
-  if (options.forceDelete && (await pathExists(worktreePath))) {
+  if (resolved.forceDelete && (await pathExists(worktreePath))) {
     try {
       await rm(worktreePath, {
         recursive: true,
@@ -94,7 +96,7 @@ export async function runRmCommand(
 
   await runGitStream(["worktree", "prune"], repoContext.repoRoot);
 
-  if (!options.forceDelete && (await pathExists(worktreePath))) {
+  if (!resolved.forceDelete && (await pathExists(worktreePath))) {
     console.log(`Removed worktree mapping for ${worktreePath}`);
     console.log(
       "Directory still exists on disk. Use --force-delete to remove it as well."

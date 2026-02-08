@@ -1,20 +1,26 @@
+import { buildWorktreeAddArgs } from "../lib/add-strategy.js";
+import { resolveAddConfig } from "../lib/config.js";
 import { copyEnvLikeFiles, parseEnvGlobs } from "../lib/env-files.js";
 import { isMissingExecutableError } from "../lib/errors.js";
 import { pathExists } from "../lib/fs-utils.js";
-import { doesLocalBranchExist, runGitStream } from "../lib/git.js";
+import {
+  doesLocalBranchExist,
+  doesRemoteBranchExist,
+  runGitStream
+} from "../lib/git.js";
 import { resolveRepoContext, resolveWorktreePath } from "../lib/repo.js";
 import { buildBranchName, toTaskSlug } from "../lib/task-utils.js";
 import { openInVSCode } from "../lib/vscode.js";
 
 export interface AddCommandOptions {
-  open: boolean;
-  base: string;
-  branchPrefix: string;
+  open?: boolean;
+  base?: string;
+  branchPrefix?: string;
   dir?: string;
-  copyEnv: boolean;
-  envGlobs: string;
-  overwriteEnv: boolean;
-  fetch: boolean;
+  copyEnv?: boolean;
+  envGlobs?: string;
+  overwriteEnv?: boolean;
+  fetch?: boolean;
 }
 
 export async function runAddCommand(
@@ -22,45 +28,46 @@ export async function runAddCommand(
   options: AddCommandOptions
 ): Promise<void> {
   const repoContext = await resolveRepoContext();
+  const resolved = await resolveAddConfig(repoContext.repoRoot, options);
   const taskSlug = toTaskSlug(task);
-  const branchName = buildBranchName(options.branchPrefix, taskSlug);
+  const branchName = buildBranchName(resolved.branchPrefix, taskSlug);
   const worktreePath = resolveWorktreePath(
     repoContext.repoRoot,
     repoContext.repoName,
     taskSlug,
-    options.dir
+    resolved.dir
   );
 
   if (await pathExists(worktreePath)) {
     throw new Error(`Worktree path already exists: ${worktreePath}`);
   }
 
-  if (options.fetch) {
+  if (resolved.fetch) {
     console.log("Fetching latest refs...");
     await runGitStream(["fetch"], repoContext.repoRoot);
   }
 
   const branchExists = await doesLocalBranchExist(repoContext.repoRoot, branchName);
+  const remoteBranchExists = branchExists
+    ? false
+    : await doesRemoteBranchExist(repoContext.repoRoot, branchName);
+  const worktreeAddArgs = buildWorktreeAddArgs({
+    branchName,
+    worktreePath,
+    baseRef: resolved.base,
+    localBranchExists: branchExists,
+    remoteBranchExists
+  });
 
-  if (branchExists) {
-    await runGitStream(
-      ["worktree", "add", worktreePath, branchName],
-      repoContext.repoRoot
-    );
-  } else {
-    await runGitStream(
-      ["worktree", "add", "-b", branchName, worktreePath, options.base],
-      repoContext.repoRoot
-    );
-  }
+  await runGitStream(worktreeAddArgs, repoContext.repoRoot);
 
-  if (options.copyEnv) {
-    const envGlobs = parseEnvGlobs(options.envGlobs);
+  if (resolved.copyEnv) {
+    const envGlobs = parseEnvGlobs(resolved.envGlobs);
     const copyResult = await copyEnvLikeFiles({
       repoRoot: repoContext.repoRoot,
       worktreePath,
       globs: envGlobs,
-      overwrite: options.overwriteEnv
+      overwrite: resolved.overwriteEnv
     });
 
     if (copyResult.matched.length === 0) {
@@ -76,7 +83,7 @@ export async function runAddCommand(
     }
   }
 
-  if (options.open) {
+  if (resolved.open) {
     try {
       await openInVSCode(worktreePath);
       console.log(`Opened VS Code at ${worktreePath}`);

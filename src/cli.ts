@@ -19,35 +19,42 @@ async function main(): Promise<void> {
     .command("add")
     .description("Create a task worktree and branch.")
     .argument("<task>", "Task label used for branch and folder names")
-    .option("--base <ref>", "Base ref for new worktree branches", "origin/main")
-    .option(
-      "--branch-prefix <prefix>",
-      "Branch prefix for generated branches",
-      "codex/"
-    )
+    .option("--base <ref>", "Base ref for new worktree branches")
+    .option("--branch-prefix <prefix>", "Branch prefix for generated branches")
     .option(
       "--dir <path>",
       "Parent directory for worktrees (default: sibling of repo root)"
     )
     .option(
       "--env-globs <patterns>",
-      "Comma-separated env-like file globs from repo root",
-      ".env,.env.*"
+      "Comma-separated env-like file globs from repo root"
     )
     .option("--overwrite-env", "Overwrite env-like files in existing worktree")
     .option("--no-open", "Do not open a new VS Code window")
     .option("--no-copy-env", "Skip env-like file copy")
     .option("--no-fetch", "Skip git fetch before worktree creation")
-    .action(async (task: string, opts) => {
+    .action(async (task: string, opts, command: Command) => {
       await runAddCommand(task, {
-        open: Boolean(opts.open),
-        base: String(opts.base),
-        branchPrefix: String(opts.branchPrefix),
-        dir: opts.dir ? String(opts.dir) : undefined,
-        copyEnv: Boolean(opts.copyEnv),
-        envGlobs: String(opts.envGlobs),
-        overwriteEnv: Boolean(opts.overwriteEnv),
-        fetch: Boolean(opts.fetch)
+        open: readExplicitOption(command, "open", Boolean(opts.open)),
+        base: readExplicitOption(command, "base", toOptionalString(opts.base)),
+        branchPrefix: readExplicitOption(
+          command,
+          "branchPrefix",
+          toOptionalString(opts.branchPrefix)
+        ),
+        dir: readExplicitOption(command, "dir", toOptionalString(opts.dir)),
+        copyEnv: readExplicitOption(command, "copyEnv", Boolean(opts.copyEnv)),
+        envGlobs: readExplicitOption(
+          command,
+          "envGlobs",
+          toOptionalString(opts.envGlobs)
+        ),
+        overwriteEnv: readExplicitOption(
+          command,
+          "overwriteEnv",
+          Boolean(opts.overwriteEnv)
+        ),
+        fetch: readExplicitOption(command, "fetch", Boolean(opts.fetch))
       });
     });
 
@@ -63,10 +70,14 @@ async function main(): Promise<void> {
       "--force-delete",
       "Delete the worktree directory after removing mapping"
     )
-    .action(async (task: string, opts) => {
+    .action(async (task: string, opts, command: Command) => {
       await runRmCommand(task, {
-        dir: opts.dir ? String(opts.dir) : undefined,
-        forceDelete: Boolean(opts.forceDelete)
+        dir: readExplicitOption(command, "dir", toOptionalString(opts.dir)),
+        forceDelete: readExplicitOption(
+          command,
+          "forceDelete",
+          Boolean(opts.forceDelete)
+        )
       });
     });
 
@@ -77,15 +88,15 @@ async function main(): Promise<void> {
       "--pretty",
       "Show a filtered table for branches using the configured prefix"
     )
-    .option(
-      "--branch-prefix <prefix>",
-      "Branch prefix used by --pretty filtering",
-      "codex/"
-    )
-    .action(async (opts) => {
+    .option("--branch-prefix <prefix>", "Branch prefix used by --pretty filtering")
+    .action(async (opts, command: Command) => {
       await runListCommand({
-        pretty: Boolean(opts.pretty),
-        branchPrefix: String(opts.branchPrefix)
+        pretty: readExplicitOption(command, "pretty", Boolean(opts.pretty)),
+        branchPrefix: readExplicitOption(
+          command,
+          "branchPrefix",
+          toOptionalString(opts.branchPrefix)
+        )
       });
     });
 
@@ -97,3 +108,25 @@ main().catch((error) => {
   process.stderr.write(`${message}\n`);
   process.exitCode = 1;
 });
+
+function isExplicitOptionSource(source: string | undefined): boolean {
+  return source === "cli" || source === "env";
+}
+
+function readExplicitOption<T>(
+  command: Command,
+  optionName: string,
+  value: T
+): T | undefined {
+  const source = command.getOptionValueSource(optionName);
+  return isExplicitOptionSource(source) ? value : undefined;
+}
+
+function toOptionalString(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}

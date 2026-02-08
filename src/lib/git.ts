@@ -52,3 +52,20 @@ export async function doesLocalBranchExist(
 
   return result.exitCode === 0;
 }
+
+export async function doesRemoteBranchExist(
+  cwd: string,
+  branchName: string,
+  remote = "origin"
+): Promise<boolean> {
+  const result = await execa(
+    "git",
+    ["show-ref", "--verify", "--quiet", `refs/remotes/${remote}/${branchName}`],
+    {
+      cwd,
+      reject: false
+    }
+  );
+
+  return result.exitCode === 0;
+}

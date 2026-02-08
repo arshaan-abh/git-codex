@@ -1,3 +1,4 @@
+import { resolveListConfig } from "../lib/config.js";
 import { runGitCapture } from "../lib/git.js";
 import { resolveRepoContext } from "../lib/repo.js";
 import {
@@ -6,14 +7,15 @@ import {
 } from "../lib/worktrees.js";
 
 export interface ListCommandOptions {
-  pretty: boolean;
-  branchPrefix: string;
+  pretty?: boolean;
+  branchPrefix?: string;
 }
 
 export async function runListCommand(options: ListCommandOptions): Promise<void> {
   const repoContext = await resolveRepoContext();
+  const resolved = await resolveListConfig(repoContext.repoRoot, options);
 
-  if (!options.pretty) {
+  if (!resolved.pretty) {
     const output = await runGitCapture(["worktree", "list"], repoContext.repoRoot);
     console.log(output);
     return;
@@ -24,7 +26,7 @@ export async function runListCommand(options: ListCommandOptions): Promise<void>
     repoContext.repoRoot
   );
   const entries = parseWorktreeListPorcelain(output);
-  const normalizedPrefix = normalizePrefix(options.branchPrefix);
+  const normalizedPrefix = normalizePrefix(resolved.branchPrefix);
   const targetRefPrefix = `refs/heads/${normalizedPrefix}`;
   const filtered = entries.filter((entry) =>
     entry.branch ? entry.branch.startsWith(targetRefPrefix) : false

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Git subcommand for task-oriented worktrees and multi-agent parallel workflows.",
   "license": "MIT",
+  "packageManager": "pnpm@10.28.2",
   "type": "module",
   "bin": {
     "git-codex": "dist/cli.js",

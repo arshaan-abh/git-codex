@@ -13,14 +13,14 @@ Phase 1 scaffold is implemented:
 ## Install
 
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm build
 ```
 
 For local subcommand testing:
 
 ```bash
-npm link
+pnpm link --global
 git codex --help
 ```
 
@@ -61,9 +61,62 @@ Optional:
 - `--pretty` filters by branch prefix and prints a compact table
 - `--branch-prefix <prefix>` default `codex/`
 
+## Phase 2 Config
+
+`git-codex` supports both file-based and git-config-based settings.
+
+Supported keys:
+
+- `base`
+- `branchPrefix`
+- `dir`
+- `copyEnv`
+- `envGlobs`
+- `overwriteEnv`
+- `fetch`
+- `open` or `openVsCodeByDefault`
+
+File locations:
+
+- Repo config: `.git-codexrc.json`
+- Global config: `~/.config/git-codex/config.json`
+
+Git config keys:
+
+- `codex.base`
+- `codex.branchPrefix`
+- `codex.dir`
+- `codex.copyEnv`
+- `codex.envGlobs`
+- `codex.overwriteEnv`
+- `codex.fetch`
+- `codex.open`
+
+Precedence:
+
+1. CLI flags
+2. Repo config file
+3. Repo git config
+4. Global config file
+5. Global git config
+6. Built-in defaults
+
+Example `.git-codexrc.json`:
+
+```json
+{
+  "base": "origin/main",
+  "branchPrefix": "codex/",
+  "fetch": false,
+  "copyEnv": true,
+  "envGlobs": [".env", ".env.*", ".npmrc"],
+  "openVsCodeByDefault": false
+}
+```
+
 ## Development
 
 ```bash
-npm test
-npm run build
+pnpm test
+pnpm build
 ```
