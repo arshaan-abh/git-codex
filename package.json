@@ -1,6 +1,6 @@
 {
   "name": "git-codex",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Git subcommand for task-oriented worktrees and multi-agent parallel workflows.",
   "keywords": [
     "git",
@@ -13,6 +13,10 @@
     "developer-tools",
     "automation"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arshaan-abh/git-codex"
+  },
   "license": "MIT",
   "type": "module",
   "bin": {
