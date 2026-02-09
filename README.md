@@ -52,7 +52,7 @@ Creates a worktree and branch for the task.
 
 Key flags:
 
-- `--base <ref>` default `origin/main`
+- `--base <ref>` default current checked-out branch
 - `--branch-prefix <prefix>` default `codex/`
 - `--dir <path>` default sibling directory of repo root
 - `--no-open` skip `code -n <worktree>`

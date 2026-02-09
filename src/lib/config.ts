@@ -7,6 +7,8 @@ import { execa } from "execa";
 import { parseOptionalEnvScope, type EnvScope } from "./env-scope.js";
 import { pathExists } from "./fs-utils.js";
 
+const CURRENT_BRANCH_BASE_SENTINEL = "__git_codex_current_branch__";
+
 export interface CodexConfigValues {
   base: string;
   branchPrefix: string;
@@ -26,7 +28,7 @@ export interface CodexConfigValues {
 export type CodexConfigOverrides = Partial<CodexConfigValues>;
 
 export const addDefaults: CodexConfigValues = {
-  base: "origin/main",
+  base: CURRENT_BRANCH_BASE_SENTINEL,
   branchPrefix: "codex/",
   dir: undefined,
   copyEnv: true,
@@ -141,7 +143,13 @@ export async function resolveAddConfig(
   cliOverrides: CodexConfigOverrides,
 ): Promise<CodexConfigValues> {
   const layers = await loadConfigLayers(repoRoot);
-  return mergeAddConfigLayers(addDefaults, ...layers, cliOverrides);
+  const resolved = mergeAddConfigLayers(addDefaults, ...layers, cliOverrides);
+
+  if (resolved.base === CURRENT_BRANCH_BASE_SENTINEL) {
+    resolved.base = await resolveCurrentBranchBaseRef(repoRoot);
+  }
+
+  return resolved;
 }
 
 export async function resolveRmConfig(
@@ -420,4 +428,19 @@ function assignIfDefined<K extends keyof CodexConfigValues>(
   if (value !== undefined) {
     target[key] = value;
   }
+}
+
+async function resolveCurrentBranchBaseRef(repoRoot: string): Promise<string> {
+  const result = await execa("git", ["branch", "--show-current"], {
+    cwd: repoRoot,
+  });
+  const branch = result.stdout.trim();
+
+  if (!branch) {
+    throw new Error(
+      "Cannot determine default base branch because HEAD is detached. Pass --base <ref> explicitly.",
+    );
+  }
+
+  return branch;
 }

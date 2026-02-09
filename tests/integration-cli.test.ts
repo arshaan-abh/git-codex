@@ -85,6 +85,8 @@ describe("cli integration", () => {
       "--json",
       "--no-open",
       "--no-fetch",
+      "--base",
+      "origin/main",
       "--env-scope",
       "packages",
       "--env-globs",
@@ -106,6 +108,41 @@ describe("cli integration", () => {
 
     await runCli(repoPath, ["rm", "env-packages", "--json", "--force-delete"]);
     await runGit(repoPath, ["branch", "-D", "codex/env-packages"]);
+    expect(await pathExists(worktreePath)).toBe(false);
+  }, 120_000);
+
+  it("defaults add base to the currently checked-out branch", async () => {
+    const { repoPath } = await createRepoWithOrigin();
+
+    await runGit(repoPath, ["checkout", "-b", "develop"]);
+    await writeFile(path.join(repoPath, "develop-only.txt"), "develop\n");
+    await runGit(repoPath, ["add", "develop-only.txt"]);
+    await runGit(repoPath, ["commit", "-m", "add develop-only file"]);
+
+    const addResult = await runCli(repoPath, [
+      "add",
+      "from-current-branch",
+      "--json",
+      "--no-open",
+      "--no-fetch",
+      "--no-copy-env",
+    ]);
+    const addEvents = parseJsonLines(addResult.stdout);
+    const createdEvent = getEvent(addEvents, "worktree.created");
+    const worktreePath = String(createdEvent.path);
+
+    expect(createdEvent.branch).toBe("codex/from-current-branch");
+    expect(await pathExists(path.join(worktreePath, "develop-only.txt"))).toBe(
+      true,
+    );
+
+    await runCli(repoPath, [
+      "rm",
+      "from-current-branch",
+      "--json",
+      "--force-delete",
+    ]);
+    await runGit(repoPath, ["branch", "-D", "codex/from-current-branch"]);
     expect(await pathExists(worktreePath)).toBe(false);
   }, 120_000);
 

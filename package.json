@@ -2,6 +2,17 @@
   "name": "git-codex",
   "version": "0.1.0",
   "description": "Git subcommand for task-oriented worktrees and multi-agent parallel workflows.",
+  "keywords": [
+    "git",
+    "git-subcommand",
+    "git-worktree",
+    "worktree",
+    "codex",
+    "cli",
+    "typescript",
+    "developer-tools",
+    "automation"
+  ],
   "license": "MIT",
   "type": "module",
   "bin": {
