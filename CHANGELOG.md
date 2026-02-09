@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0
+
+### Major Changes
+
+- 03a5b55: Release v1.0.0: first stable version of git-codex with add/rm/list/open/prompt commands, worktree reuse/recreate flags, env scope support, templates, CI hardening, and release workflow docs.
+
 All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project follows Semantic Versioning.
