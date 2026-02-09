@@ -96,3 +96,17 @@ Remaining tasks from `PLAN.md` that are not yet implemented or fully closed.
   - Publish process is documented and tested (dry run or release checklist).
   - Installation docs are consistent and verified for intended usage patterns.
   - Release/tag/version/changelog flow ties into publish step.
+
+## 8) Merge and Finish Task Workflow
+
+- Status: `not implemented`
+- Plan source: `future enhancement`
+- Description:
+  - Add a workflow/command to help users complete a task branch and clean up in one guided flow.
+  - Target outcome: reduce manual steps when finishing task worktrees (merge, remove worktree, delete task branch, and optional push).
+  - Consider adding a command such as `git codex finish <task>` with safety checks and clear prompts/output.
+- Completion criteria:
+  - Feature supports a safe merge path into a target base branch.
+  - Supports optional cleanup (worktree removal and task branch deletion).
+  - Handles non-clean states with clear errors (uncommitted changes, merge conflicts, missing branch/worktree).
+  - Includes integration tests and user documentation for the finish flow.
