@@ -110,3 +110,26 @@ Remaining tasks from `PLAN.md` that are not yet implemented or fully closed.
   - Supports optional cleanup (worktree removal and task branch deletion).
   - Handles non-clean states with clear errors (uncommitted changes, merge conflicts, missing branch/worktree).
   - Includes integration tests and user documentation for the finish flow.
+
+## 9) Multi-IDE Open Support (Beyond VS Code)
+
+- Status: `not implemented`
+- Plan source: `future enhancement`
+- Description:
+  - Current `add`/`open` behavior launches VS Code via the `code` CLI only.
+  - Add IDE provider support so users can open worktrees in other editors/IDEs (for example Cursor and JetBrains IDEs) without custom shell scripts.
+  - Introduce provider-aware open abstraction with consistent behavior across commands:
+    - `git codex add <task>` (auto-open path)
+    - `git codex open <task>` (manual open path)
+  - Proposed interface:
+    - CLI option such as `--ide <provider>` (`vscode`, `cursor`, `webstorm`, `idea`, etc.).
+    - Optional escape hatch like `--open-cmd <command>` for custom environments.
+    - Config keys for default IDE/provider and optional custom open command.
+  - Ensure cross-platform behavior for Windows/macOS/Linux, including executable-not-found guidance and fallback messaging.
+- Completion criteria:
+  - `add` and `open` support selecting IDE/provider via CLI and config.
+  - Open command construction is centralized and tested for each supported provider.
+  - Missing executable/errors return actionable messages (similar quality to current VS Code guidance).
+  - Unit tests cover provider resolution and command generation.
+  - Integration tests cover non-launch mode (`--no-open`) and JSON event metadata for selected IDE.
+  - README/docs include supported IDE matrix, examples, and configuration instructions.
