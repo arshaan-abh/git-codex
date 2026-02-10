@@ -3,6 +3,7 @@
 import { Command } from "commander";
 
 import { runAddCommand } from "./commands/add.js";
+import { runFinishCommand } from "./commands/finish.js";
 import { runListCommand } from "./commands/list.js";
 import { runOpenCommand } from "./commands/open.js";
 import { runPromptCommand } from "./commands/prompt.js";
@@ -124,6 +125,55 @@ async function main(): Promise<void> {
           reuse: Boolean(opts.reuse),
           rmFirst: Boolean(opts.rmFirst),
           fetch: readExplicitOption(command, "fetch", Boolean(opts.fetch)),
+        },
+        output,
+      );
+    });
+
+  program
+    .command("finish")
+    .description(
+      "Merge a task branch into the current branch, then clean up task worktree/branch.",
+    )
+    .argument("<task>", "Task label")
+    .option(
+      "--dir <path>",
+      "Parent directory for worktrees (default: sibling of repo root)",
+    )
+    .option(
+      "--branch-prefix <prefix>",
+      "Branch prefix for task branch names",
+    )
+    .option(
+      "--no-force-delete",
+      "Do not force-delete the task worktree directory during cleanup",
+    )
+    .option("--no-cleanup", "Skip worktree and branch cleanup after merge")
+    .option("--keep-branch", "Keep task branch after a successful merge")
+    .action(async (task: string, opts, command: Command) => {
+      const output = createOutput(readGlobalOutputOptions(command));
+      const keepBranch = readExplicitOption(
+        command,
+        "keepBranch",
+        Boolean(opts.keepBranch),
+      );
+      await runFinishCommand(
+        task,
+        {
+          dir: readExplicitOption(command, "dir", toOptionalString(opts.dir)),
+          branchPrefix: readExplicitOption(
+            command,
+            "branchPrefix",
+            toOptionalString(opts.branchPrefix),
+          ),
+          forceDelete: readExplicitOption(
+            command,
+            "forceDelete",
+            Boolean(opts.forceDelete),
+          ),
+          cleanup: readExplicitOption(command, "cleanup", Boolean(opts.cleanup)),
+          deleteBranch:
+            keepBranch === undefined ? undefined : !Boolean(keepBranch),
         },
         output,
       );
@@ -294,3 +344,4 @@ function readGlobalOutputOptions(command: Command): {
     json: Boolean(options.json),
   };
 }
+

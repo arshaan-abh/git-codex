@@ -65,6 +65,81 @@ describe("cli integration", () => {
     expect(await pathExists(worktreePath)).toBe(false);
   }, 120_000);
 
+  it("merges task branch into current branch and force-cleans branch/worktree by default", async () => {
+    const { repoPath } = await createRepoWithOrigin();
+
+    const addResult = await runCli(repoPath, [
+      "add",
+      "finish-task",
+      "--json",
+      "--no-open",
+      "--no-fetch",
+      "--no-copy-env",
+    ]);
+    const addEvents = parseJsonLines(addResult.stdout);
+    const createdEvent = getEvent(addEvents, "worktree.created");
+    const worktreePath = String(createdEvent.path);
+
+    await writeFile(path.join(worktreePath, "finish-feature.txt"), "done\n");
+    await runGit(worktreePath, ["add", "finish-feature.txt"]);
+    await runGit(worktreePath, ["commit", "-m", "finish task change"]);
+
+    const finishResult = await runCli(repoPath, ["finish", "finish-task", "--json"]);
+    const finishEvents = parseJsonLines(finishResult.stdout);
+    const finishedEvent = getEvent(finishEvents, "task.finished");
+
+    expect(finishedEvent.taskBranch).toBe("codex/finish-task");
+    expect(finishedEvent.mergedInto).toBe("main");
+    expect(finishedEvent.worktreeRemoved).toBe(true);
+    expect(finishedEvent.branchDeleted).toBe(true);
+    expect(await pathExists(path.join(repoPath, "finish-feature.txt"))).toBe(true);
+    expect(await pathExists(worktreePath)).toBe(false);
+
+    const branchCheck = await execa(
+      "git",
+      ["show-ref", "--verify", "--quiet", "refs/heads/codex/finish-task"],
+      {
+        cwd: repoPath,
+        reject: false,
+      },
+    );
+    expect(branchCheck.exitCode).not.toBe(0);
+  }, 120_000);
+  it("rejects finish when current branch has uncommitted changes", async () => {
+    const { repoPath } = await createRepoWithOrigin();
+
+    const addResult = await runCli(repoPath, [
+      "add",
+      "finish-dirty",
+      "--json",
+      "--no-open",
+      "--no-fetch",
+      "--no-copy-env",
+    ]);
+    const addEvents = parseJsonLines(addResult.stdout);
+    const createdEvent = getEvent(addEvents, "worktree.created");
+    const worktreePath = String(createdEvent.path);
+
+    await writeFile(path.join(worktreePath, "finish-dirty.txt"), "dirty\n");
+    await runGit(worktreePath, ["add", "finish-dirty.txt"]);
+    await runGit(worktreePath, ["commit", "-m", "finish dirty task change"]);
+
+    await writeFile(path.join(repoPath, "local-dirty.txt"), "dirty\n");
+
+    const failure = await runCliExpectFailure(repoPath, ["finish", "finish-dirty"]);
+    expect(failure.stderr).toContain("Current worktree has uncommitted changes");
+    expect(await pathExists(worktreePath)).toBe(true);
+
+    const branchCheck = await execa(
+      "git",
+      ["show-ref", "--verify", "--quiet", "refs/heads/codex/finish-dirty"],
+      {
+        cwd: repoPath,
+        reject: false,
+      },
+    );
+    expect(branchCheck.exitCode).toBe(0);
+  }, 120_000);
   it("supports --env-scope packages for monorepo env copy", async () => {
     const { repoPath } = await createRepoWithOrigin();
 

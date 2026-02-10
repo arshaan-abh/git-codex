@@ -7,6 +7,7 @@
 Phase 1 scaffold is implemented:
 
 - `git codex add <task>`
+- `git codex finish <task>`
 - `git codex rm <task>`
 - `git codex list`
 
@@ -65,6 +66,28 @@ Key flags:
 - `--template-type <type>` choose built-in template skeleton: `default`, `bugfix`, or `feature`
 - `--overwrite-template` replace an existing generated instructions file
 - `--no-fetch` skip `git fetch`
+
+### `git codex finish <task>`
+
+Merges the task branch into the currently checked-out branch in the main worktree.
+On successful merge, it cleans up task artifacts by default.
+
+Key flags:
+
+- `--dir <path>` worktree parent directory override
+- `--branch-prefix <prefix>` override task branch prefix
+- `--no-force-delete` keep task worktree folder on disk during cleanup
+- `--no-cleanup` keep worktree and branch after merge
+- `--keep-branch` remove worktree but keep merged task branch
+
+Default behavior:
+
+- Validates current worktree is clean before merging
+- Runs `git merge --no-ff --no-edit <task-branch>` into current branch
+- Removes task worktree with force delete enabled
+- Deletes merged task branch
+
+In `--json` mode, `finish` emits `task.finished`.
 
 ### `git codex rm <task>`
 

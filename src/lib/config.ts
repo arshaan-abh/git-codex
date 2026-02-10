@@ -209,6 +209,33 @@ export async function resolveOpenConfig(
   };
 }
 
+export async function resolveFinishConfig(
+  repoRoot: string,
+  cliOverrides: {
+    dir?: string;
+    branchPrefix?: string;
+    forceDelete?: boolean;
+    cleanup?: boolean;
+    deleteBranch?: boolean;
+  },
+): Promise<{
+  dir?: string;
+  branchPrefix: string;
+  forceDelete: boolean;
+  cleanup: boolean;
+  deleteBranch: boolean;
+}> {
+  const addConfig = await resolveAddConfig(repoRoot, {});
+  const cleanup = cliOverrides.cleanup ?? true;
+
+  return {
+    dir: cliOverrides.dir ?? addConfig.dir,
+    branchPrefix: cliOverrides.branchPrefix ?? addConfig.branchPrefix,
+    forceDelete: cliOverrides.forceDelete ?? true,
+    cleanup,
+    deleteBranch: cliOverrides.deleteBranch ?? cleanup,
+  };
+}
 export async function resolvePromptConfig(
   repoRoot: string,
   cliOverrides: {
@@ -444,3 +471,4 @@ async function resolveCurrentBranchBaseRef(repoRoot: string): Promise<string> {
 
   return branch;
 }
+
