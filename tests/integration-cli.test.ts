@@ -140,6 +140,111 @@ describe("cli integration", () => {
     );
     expect(branchCheck.exitCode).toBe(0);
   }, 120_000);
+
+  it("prompts when task worktree has uncommitted files and aborts when user declines", async () => {
+    const { repoPath } = await createRepoWithOrigin();
+
+    const addResult = await runCli(repoPath, [
+      "add",
+      "finish-dirty-task",
+      "--json",
+      "--no-open",
+      "--no-fetch",
+      "--no-copy-env",
+    ]);
+    const addEvents = parseJsonLines(addResult.stdout);
+    const createdEvent = getEvent(addEvents, "worktree.created");
+    const worktreePath = String(createdEvent.path);
+
+    await writeFile(path.join(worktreePath, "dirty-task.txt"), "uncommitted\n");
+
+    const failure = await runCliExpectFailure(
+      repoPath,
+      ["finish", "finish-dirty-task"],
+      { input: "n\n" },
+    );
+
+    expect(failure.stderr).toContain("Aborted finish");
+    expect(await pathExists(worktreePath)).toBe(true);
+
+    const branchCheck = await execa(
+      "git",
+      ["show-ref", "--verify", "--quiet", "refs/heads/codex/finish-dirty-task"],
+      {
+        cwd: repoPath,
+        reject: false,
+      },
+    );
+    expect(branchCheck.exitCode).toBe(0);
+  }, 120_000);
+
+  it("waits on merge conflicts and continues cleanup after conflicts are resolved", async () => {
+    const { repoPath } = await createRepoWithOrigin();
+
+    await writeFile(path.join(repoPath, "conflict.txt"), "base\n");
+    await runGit(repoPath, ["add", "conflict.txt"]);
+    await runGit(repoPath, ["commit", "-m", "add conflict fixture"]);
+
+    const addResult = await runCli(repoPath, [
+      "add",
+      "finish-conflict",
+      "--json",
+      "--no-open",
+      "--no-fetch",
+      "--no-copy-env",
+    ]);
+    const addEvents = parseJsonLines(addResult.stdout);
+    const createdEvent = getEvent(addEvents, "worktree.created");
+    const worktreePath = String(createdEvent.path);
+
+    await writeFile(path.join(worktreePath, "conflict.txt"), "task-change\n");
+    await runGit(worktreePath, ["add", "conflict.txt"]);
+    await runGit(worktreePath, ["commit", "-m", "task conflict change"]);
+
+    await writeFile(path.join(repoPath, "conflict.txt"), "main-change\n");
+    await runGit(repoPath, ["add", "conflict.txt"]);
+    await runGit(repoPath, ["commit", "-m", "main conflict change"]);
+
+    const finishProcess = execa(process.execPath, [cliPath, "finish", "finish-conflict"], {
+      cwd: repoPath,
+      reject: false,
+    });
+
+    await waitForProcessOutput(finishProcess, /Merge conflict/i, 20_000);
+
+    await writeFile(path.join(repoPath, "conflict.txt"), "resolved\n");
+    await runGit(repoPath, ["add", "conflict.txt"]);
+    await runGit(repoPath, ["commit", "-m", "resolve finish conflict"]);
+
+    finishProcess.stdin?.write("c\n");
+    finishProcess.stdin?.end();
+
+    const result = await finishProcess;
+    if (result.exitCode !== 0) {
+      throw new Error(
+        [
+          "Expected finish command to succeed after conflict resolution.",
+          result.stderr || result.stdout || "No output",
+        ].join("\n"),
+      );
+    }
+
+    expect(await pathExists(worktreePath)).toBe(false);
+
+    const branchCheck = await execa(
+      "git",
+      ["show-ref", "--verify", "--quiet", "refs/heads/codex/finish-conflict"],
+      {
+        cwd: repoPath,
+        reject: false,
+      },
+    );
+    expect(branchCheck.exitCode).not.toBe(0);
+    expect(await readFile(path.join(repoPath, "conflict.txt"), "utf8")).toContain(
+      "resolved",
+    );
+  }, 180_000);
+
   it("supports --env-scope packages for monorepo env copy", async () => {
     const { repoPath } = await createRepoWithOrigin();
 
@@ -547,10 +652,14 @@ async function runGit(cwd: string, args: string[]): Promise<void> {
 async function runCli(
   cwd: string,
   args: string[],
+  options: {
+    input?: string;
+  } = {},
 ): Promise<{ stdout: string; stderr: string }> {
   const result = await execa(process.execPath, [cliPath, ...args], {
     cwd,
     reject: false,
+    input: options.input,
   });
 
   if (result.exitCode !== 0) {
@@ -573,10 +682,14 @@ async function runCli(
 async function runCliExpectFailure(
   cwd: string,
   args: string[],
+  options: {
+    input?: string;
+  } = {},
 ): Promise<{ stdout: string; stderr: string }> {
   const result = await execa(process.execPath, [cliPath, ...args], {
     cwd,
     reject: false,
+    input: options.input,
   });
 
   if (result.exitCode === 0) {
@@ -611,4 +724,72 @@ function getEvent(
   }
 
   return found;
+}
+
+async function waitForProcessOutput(
+  processHandle: {
+    stdout: NodeJS.ReadableStream | null;
+    stderr: NodeJS.ReadableStream | null;
+    then: Promise<{ exitCode?: number; stdout: string; stderr: string }>["then"];
+  },
+  pattern: RegExp,
+  timeoutMs: number,
+): Promise<void> {
+  let buffer = "";
+
+  const checkMatch = (chunk: string, resolve: () => void): void => {
+    buffer += chunk;
+    if (pattern.test(buffer)) {
+      resolve();
+    }
+  };
+
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(
+        new Error(
+          `Timed out waiting for output pattern ${pattern.toString()} in: ${buffer}`,
+        ),
+      );
+    }, timeoutMs);
+
+    const onStdout = (chunk: Buffer | string): void => {
+      checkMatch(chunk.toString(), () => {
+        cleanup();
+        resolve();
+      });
+    };
+
+    const onStderr = (chunk: Buffer | string): void => {
+      checkMatch(chunk.toString(), () => {
+        cleanup();
+        resolve();
+      });
+    };
+
+    const cleanup = (): void => {
+      clearTimeout(timeout);
+      processHandle.stdout?.off("data", onStdout);
+      processHandle.stderr?.off("data", onStderr);
+    };
+
+    processHandle.stdout?.on("data", onStdout);
+    processHandle.stderr?.on("data", onStderr);
+
+    // If the process exits before pattern appears, surface captured output.
+    Promise.resolve(processHandle).then(
+      () => {
+        cleanup();
+        reject(
+          new Error(
+            `Process exited before emitting ${pattern.toString()}. Output: ${buffer}`,
+          ),
+        );
+      },
+      (error) => {
+        cleanup();
+        reject(error);
+      },
+    );
+  });
 }

@@ -6,11 +6,11 @@
 
 Adding tasks and merging them back:
 
-https://github.com/user-attachments/assets/035b2c1b-11f7-4d42-ac3a-9063522ba379
+<https://github.com/user-attachments/assets/035b2c1b-11f7-4d42-ac3a-9063522ba379>
 
 Removing the tasks after the merge:
 
-https://github.com/user-attachments/assets/0df9c32b-9312-49c3-a819-c884836b1d91
+<https://github.com/user-attachments/assets/0df9c32b-9312-49c3-a819-c884836b1d91>
 
 ## Status
 
@@ -93,9 +93,17 @@ Key flags:
 Default behavior:
 
 - Validates current worktree is clean before merging
+- Checks the task worktree for uncommitted files and asks for confirmation before continuing
 - Runs `git merge --no-ff --no-edit <task-branch>` into current branch
+- If merge conflicts occur, pauses and waits for you to resolve+commit (or abort) before deciding cleanup
 - Removes task worktree with force delete enabled
 - Deletes merged task branch
+
+Conflict/dirty-state notes:
+
+- If you decline confirmation for dirty task worktree files, finish aborts and no cleanup runs.
+- If merge conflicts are unresolved or you abort during conflict handling, finish exits and cleanup is skipped.
+- Cleanup runs only after merge completion is verified.
 
 In `--json` mode, `finish` emits `task.finished`.
 

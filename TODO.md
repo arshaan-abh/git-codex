@@ -99,16 +99,18 @@ Remaining tasks from `PLAN.md` that are not yet implemented or fully closed.
 
 ## 8) Merge and Finish Task Workflow
 
-- Status: `not implemented`
+- Status: `implemented` (2026-02-10)
 - Plan source: `future enhancement`
 - Description:
-  - Add a workflow/command to help users complete a task branch and clean up in one guided flow.
-  - Target outcome: reduce manual steps when finishing task worktrees (merge, remove worktree, delete task branch, and optional push).
-  - Consider adding a command such as `git codex finish <task>` with safety checks and clear prompts/output.
+  - Added `git codex finish <task>` to complete task branches in one flow.
+  - The command merges the task branch into the currently checked-out branch in the main worktree.
+  - On successful merge, default behavior is forced cleanup: remove task worktree and delete task branch.
+  - Added options for control: `--no-force-delete`, `--no-cleanup`, and `--keep-branch` (plus `--dir` and `--branch-prefix`).
+  - Added safety checks for detached HEAD, dirty working tree, missing task branch, and same-branch merge attempts.
 - Completion criteria:
-  - Feature supports a safe merge path into a target base branch.
-  - Supports optional cleanup (worktree removal and task branch deletion).
-  - Handles non-clean states with clear errors (uncommitted changes, merge conflicts, missing branch/worktree).
+  - `finish` supports a safe merge path into the current checked-out target branch.
+  - Supports optional cleanup controls (`--no-cleanup`, `--keep-branch`, `--no-force-delete`).
+  - Handles non-clean states with clear errors (uncommitted changes, merge conflicts, missing branch, detached HEAD).
   - Includes integration tests and user documentation for the finish flow.
 
 ## 9) Multi-IDE Open Support (Beyond VS Code)
@@ -133,3 +135,20 @@ Remaining tasks from `PLAN.md` that are not yet implemented or fully closed.
   - Unit tests cover provider resolution and command generation.
   - Integration tests cover non-launch mode (`--no-open`) and JSON event metadata for selected IDE.
   - README/docs include supported IDE matrix, examples, and configuration instructions.
+
+## 10) Finish Workflow: Optional Push + Guided Completion
+
+- Status: `not implemented`
+- Plan source: `future enhancement` (split out from item 8)
+- Description:
+  - Extend `git codex finish <task>` with optional remote push support so finishing can include merge + push in one flow.
+  - Add a guided completion mode with explicit confirmations and clear step-by-step output for destructive cleanup.
+  - Consider explicit target branch selection (`--into <branch>`) so users do not need to pre-checkout the target branch manually.
+- Completion criteria:
+  - Supports `--push` (and optional remote/branch selection) with robust error handling.
+  - Defines safe order of operations for push vs cleanup and preserves recoverability when push fails.
+  - Adds guided confirmation mode (for example `--interactive` / `--yes`) for merge and cleanup actions.
+  - Adds tests for push success/failure and guided mode behavior.
+  - Documents finish push/guided usage and failure recovery steps.
+
+ask codex for potential problems and potential features
