@@ -151,4 +151,160 @@ Remaining tasks from `PLAN.md` that are not yet implemented or fully closed.
   - Adds tests for push success/failure and guided mode behavior.
   - Documents finish push/guided usage and failure recovery steps.
 
-ask codex for potential problems and potential features
+## Potential Issues (Audit)
+
+## 11) Safety: Prevent Deleting Non-Worktree Directories During Force Cleanup
+
+- Status: `not implemented`
+- Plan source: `audit` (`src/commands/rm.ts`, `src/commands/add.ts`)
+- Description:
+  - Current force-delete flows can remove directories from disk even when the git worktree mapping is missing.
+  - In `rm`, if mapping is missing but path exists, `--force-delete` still removes the directory.
+  - In `add --rm-first`, the recreate path can also remove an existing directory after force-removal attempts.
+  - This is useful for cleanup, but risky if a path collision points at a directory that is not a valid worktree.
+  - Add stronger safety checks before destructive delete:
+    - verify path is a registered worktree for this repo, or
+    - verify path contains worktree metadata tied to this repo.
+  - If verification fails, require explicit user confirmation or a dedicated override flag.
+- Completion criteria:
+  - Force delete does not remove unknown directories by default.
+  - Commands emit clear warnings when deletion target is not a verified worktree.
+  - Explicit override path exists for advanced users.
+  - Integration tests cover verified-worktree delete and non-worktree rejection paths.
+
+## 12) Config Consistency Bug: `open` Command Ignores Configured Default Open Behavior
+
+- Status: `not implemented`
+- Plan source: `audit` (`src/lib/config.ts`)
+- Description:
+  - `resolveOpenConfig` currently resolves `open` as `cliOverrides.open ?? true`.
+  - This bypasses configured defaults from `.git-codexrc.json` / git config (`codex.open`).
+  - Result: users who set `open: false` in config still get auto-open behavior unless they pass `--no-open` on CLI.
+  - Align `open` command config resolution with the same precedence model used elsewhere.
+- Completion criteria:
+  - `open` command respects config values when CLI flag is omitted.
+  - CLI flags still override config.
+  - Unit tests assert precedence for CLI, repo config, and global config.
+  - README clarifies default `open` behavior across `add` and `open`.
+
+## 13) Validation Gap: `open` Reports Expected Branch but Does Not Verify Actual Worktree Branch
+
+- Status: `not implemented`
+- Plan source: `audit` (`src/commands/open.ts`)
+- Description:
+  - `open` currently computes expected branch name from task slug/prefix and prints it.
+  - It does not validate that the target path is a registered worktree for this repo or that the branch actually matches expectation.
+  - This can produce misleading success output for detached/mismatched/manual paths.
+  - Add branch/mapping verification similar to `add --reuse` safeguards.
+- Completion criteria:
+  - `open` validates path is a registered worktree in current repo.
+  - Command verifies actual branch (or detached state) and reports accurate status.
+  - Mismatch behavior is explicit (error or warning mode).
+  - Integration tests cover expected branch, mismatch, and detached scenarios.
+
+## 14) Remote Detection Robustness: Base Ref Parsing Can Infer Wrong Remote
+
+- Status: `not implemented`
+- Plan source: `audit` (`src/commands/add.ts`)
+- Description:
+  - Remote inference currently derives remote name from the first slash in `--base`.
+  - Local branch names containing slashes (for example `feature/foo`) can be misinterpreted as remote names.
+  - This can cause remote-branch existence checks/fetch behavior to target non-existent remotes.
+  - Improve inference to only treat `<remote>/<branch>` as remote when `<remote>` is an actual configured remote.
+  - Fall back safely to `origin` (or configurable default) when ambiguous.
+- Completion criteria:
+  - Remote inference checks configured remotes before treating prefix as remote.
+  - Ambiguous base refs no longer produce invalid remote lookups.
+  - Add tests for local branch refs with slashes and real remote refs.
+  - Documentation clarifies base ref and remote resolution behavior.
+
+## 15) Automation Reliability: Interactive `finish` Prompts Can Block Non-Interactive Runs
+
+- Status: `not implemented`
+- Plan source: `audit` (`src/commands/finish.ts`, `src/cli.ts`)
+- Description:
+  - `finish` now prompts on dirty task worktrees and conflict resolution loops.
+  - In CI/automation/non-TTY contexts, prompts can block indefinitely if no input is provided.
+  - Add explicit non-interactive controls and safe defaults:
+    - `--yes` / `--assume-yes` for pre-approved continuation.
+    - `--non-interactive` to fail fast instead of waiting for input.
+    - detect non-TTY and provide actionable guidance.
+  - Include structured event output for prompt decisions in `--json` mode.
+- Completion criteria:
+  - Non-interactive mode never waits for stdin.
+  - `--yes` and `--non-interactive` behaviors are deterministic and documented.
+  - JSON output includes machine-readable prompt/decision events.
+  - Integration tests cover CI-style non-interactive scenarios.
+
+## Potential Useful Features (Audit)
+
+## 16) New Command: `git codex status` for Task Health Overview
+
+- Status: `not implemented`
+- Plan source: `audit`
+- Description:
+  - Add a status command to inspect task worktrees and branches in one view.
+  - Suggested fields:
+    - task slug, worktree path, branch, detached/locked flags
+    - clean/dirty state
+    - merge status vs current branch (merged/unmerged)
+    - optional ahead/behind against remote
+  - Support both human-readable table and `--json`.
+- Completion criteria:
+  - `status` command implemented with consistent output shape.
+  - Works across multiple worktrees with configurable branch prefix filter.
+  - Includes integration tests and docs with examples.
+
+## 17) `finish --dry-run`: Preflight Report Before Merge/Cleanup
+
+- Status: `not implemented`
+- Plan source: `audit`
+- Description:
+  - Add a dry-run mode for `finish` that performs checks and shows intended actions without mutating git state.
+  - Preflight should include:
+    - current branch
+    - task branch existence
+    - dirty states (main/task worktree)
+    - potential cleanup actions
+    - remote push plan (once push support exists)
+  - Useful for cautious workflows and CI validations.
+- Completion criteria:
+  - `finish --dry-run` performs zero write operations.
+  - Output clearly distinguishes pass/fail checks and planned actions.
+  - JSON output includes deterministic preflight result schema.
+  - Tests verify no side effects in dry-run mode.
+
+## 18) Safe Cleanup Mode: Trash/Archive Instead of Immediate Permanent Delete
+
+- Status: `not implemented`
+- Plan source: `audit`
+- Description:
+  - Add optional cleanup strategy that moves task worktree directories to a recoverable trash/archive location instead of immediate hard delete.
+  - Useful for accidental deletion recovery and safer adoption in teams.
+  - Suggested options:
+    - `--cleanup-mode delete|trash`
+    - `git codex restore <task>` to restore last trashed path
+    - retention policy configuration for archive cleanup.
+- Completion criteria:
+  - Cleanup mode is configurable per command and per config defaults.
+  - Restore workflow is documented and tested.
+  - Cross-platform path handling is robust (Windows/macOS/Linux).
+  - Security/safety notes are included in docs.
+
+## 19) New Command: `git codex sync <task>` for Base-Branch Updates
+
+- Status: `not implemented`
+- Plan source: `audit`
+- Description:
+  - Add a command to update a task branch from a base branch without manual navigation.
+  - Suggested behavior:
+    - open task worktree context
+    - fetch (optional)
+    - merge/rebase from base (`--strategy merge|rebase`)
+    - emit summary of conflicts and resulting branch state
+  - This reduces manual git commands during long-lived task work.
+- Completion criteria:
+  - `sync` command supports merge and rebase strategies.
+  - Conflict handling and rollback/abort guidance is clear.
+  - Tests cover clean sync and conflict scenarios.
+  - README includes workflow examples with `add -> sync -> finish`.
