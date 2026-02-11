@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+### Minor Changes
+
+- Added `git codex finish <task>` to complete task branches in one flow.
+
 ## 1.0.1
 
 ### Patch Changes
