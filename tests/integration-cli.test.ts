@@ -84,7 +84,11 @@ describe("cli integration", () => {
     await runGit(worktreePath, ["add", "finish-feature.txt"]);
     await runGit(worktreePath, ["commit", "-m", "finish task change"]);
 
-    const finishResult = await runCli(repoPath, ["finish", "finish-task", "--json"]);
+    const finishResult = await runCli(repoPath, [
+      "finish",
+      "finish-task",
+      "--json",
+    ]);
     const finishEvents = parseJsonLines(finishResult.stdout);
     const finishedEvent = getEvent(finishEvents, "task.finished");
 
@@ -92,7 +96,9 @@ describe("cli integration", () => {
     expect(finishedEvent.mergedInto).toBe("main");
     expect(finishedEvent.worktreeRemoved).toBe(true);
     expect(finishedEvent.branchDeleted).toBe(true);
-    expect(await pathExists(path.join(repoPath, "finish-feature.txt"))).toBe(true);
+    expect(await pathExists(path.join(repoPath, "finish-feature.txt"))).toBe(
+      true,
+    );
     expect(await pathExists(worktreePath)).toBe(false);
 
     const branchCheck = await execa(
@@ -126,8 +132,13 @@ describe("cli integration", () => {
 
     await writeFile(path.join(repoPath, "local-dirty.txt"), "dirty\n");
 
-    const failure = await runCliExpectFailure(repoPath, ["finish", "finish-dirty"]);
-    expect(failure.stderr).toContain("Current worktree has uncommitted changes");
+    const failure = await runCliExpectFailure(repoPath, [
+      "finish",
+      "finish-dirty",
+    ]);
+    expect(failure.stderr).toContain(
+      "Current worktree has uncommitted changes",
+    );
     expect(await pathExists(worktreePath)).toBe(true);
 
     const branchCheck = await execa(
@@ -205,10 +216,14 @@ describe("cli integration", () => {
     await runGit(repoPath, ["add", "conflict.txt"]);
     await runGit(repoPath, ["commit", "-m", "main conflict change"]);
 
-    const finishProcess = execa(process.execPath, [cliPath, "finish", "finish-conflict"], {
-      cwd: repoPath,
-      reject: false,
-    });
+    const finishProcess = execa(
+      process.execPath,
+      [cliPath, "finish", "finish-conflict"],
+      {
+        cwd: repoPath,
+        reject: false,
+      },
+    );
 
     await waitForProcessOutput(finishProcess, /Merge conflict/i, 20_000);
 
@@ -240,9 +255,9 @@ describe("cli integration", () => {
       },
     );
     expect(branchCheck.exitCode).not.toBe(0);
-    expect(await readFile(path.join(repoPath, "conflict.txt"), "utf8")).toContain(
-      "resolved",
-    );
+    expect(
+      await readFile(path.join(repoPath, "conflict.txt"), "utf8"),
+    ).toContain("resolved");
   }, 180_000);
 
   it("supports --env-scope packages for monorepo env copy", async () => {
@@ -730,7 +745,11 @@ async function waitForProcessOutput(
   processHandle: {
     stdout: NodeJS.ReadableStream | null;
     stderr: NodeJS.ReadableStream | null;
-    then: Promise<{ exitCode?: number; stdout: string; stderr: string }>["then"];
+    then: Promise<{
+      exitCode?: number;
+      stdout: string;
+      stderr: string;
+    }>["then"];
   },
   pattern: RegExp,
   timeoutMs: number,

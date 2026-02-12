@@ -140,10 +140,7 @@ async function main(): Promise<void> {
       "--dir <path>",
       "Parent directory for worktrees (default: sibling of repo root)",
     )
-    .option(
-      "--branch-prefix <prefix>",
-      "Branch prefix for task branch names",
-    )
+    .option("--branch-prefix <prefix>", "Branch prefix for task branch names")
     .option(
       "--no-force-delete",
       "Do not force-delete the task worktree directory during cleanup",
@@ -171,7 +168,11 @@ async function main(): Promise<void> {
             "forceDelete",
             Boolean(opts.forceDelete),
           ),
-          cleanup: readExplicitOption(command, "cleanup", Boolean(opts.cleanup)),
+          cleanup: readExplicitOption(
+            command,
+            "cleanup",
+            Boolean(opts.cleanup),
+          ),
           deleteBranch:
             keepBranch === undefined ? undefined : !Boolean(keepBranch),
         },
@@ -344,4 +345,3 @@ function readGlobalOutputOptions(command: Command): {
     json: Boolean(options.json),
   };
 }
-

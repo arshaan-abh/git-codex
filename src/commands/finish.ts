@@ -53,7 +53,10 @@ export async function runFinishCommand(
     );
   }
 
-  const branchExists = await doesLocalBranchExist(repoContext.repoRoot, taskBranch);
+  const branchExists = await doesLocalBranchExist(
+    repoContext.repoRoot,
+    taskBranch,
+  );
   if (!branchExists) {
     throw new Error(`Task branch does not exist locally: ${taskBranch}`);
   }
@@ -123,7 +126,10 @@ export async function runFinishCommand(
       branchDeleted = true;
       output.info(`Deleted branch ${taskBranch}.`);
     } else {
-      const deleteError = mergeGitOutput(deleteResult.stderr, deleteResult.stdout);
+      const deleteError = mergeGitOutput(
+        deleteResult.stderr,
+        deleteResult.stdout,
+      );
       if (isMissingBranchError(deleteError)) {
         output.info(`Branch ${taskBranch} is already missing.`);
       } else {
@@ -200,15 +206,16 @@ async function confirmTaskWorktreeState(
   );
 
   if (shouldContinue === "y" || shouldContinue === "yes") {
-    output.warn("Continuing finish with dirty task worktree by user confirmation.");
+    output.warn(
+      "Continuing finish with dirty task worktree by user confirmation.",
+    );
     return;
   }
 
   throw new Error(
-    [
-      "Aborted finish.",
-      "Task worktree contains uncommitted changes.",
-    ].join("\n"),
+    ["Aborted finish.", "Task worktree contains uncommitted changes."].join(
+      "\n",
+    ),
   );
 }
 
@@ -251,7 +258,9 @@ async function waitForConflictResolution(
       continue;
     }
 
-    output.info(`Merge conflict resolved; continuing finish for ${taskBranch}.`);
+    output.info(
+      `Merge conflict resolved; continuing finish for ${taskBranch}.`,
+    );
     return;
   }
 }
@@ -312,7 +321,9 @@ async function promptLine(question: string): Promise<string> {
 }
 
 async function resolveCurrentBranch(repoRoot: string): Promise<string> {
-  const currentBranch = (await runGitCapture(["branch", "--show-current"], repoRoot)).trim();
+  const currentBranch = (
+    await runGitCapture(["branch", "--show-current"], repoRoot)
+  ).trim();
   if (!currentBranch) {
     throw new Error(
       "Cannot finish task while HEAD is detached. Checkout a target branch first.",

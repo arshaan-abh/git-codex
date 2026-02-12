@@ -471,4 +471,3 @@ async function resolveCurrentBranchBaseRef(repoRoot: string): Promise<string> {
 
   return branch;
 }
-
