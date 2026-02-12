@@ -4,13 +4,7 @@
 
 ## Demo
 
-Adding tasks and merging them back:
-
-<https://github.com/user-attachments/assets/035b2c1b-11f7-4d42-ac3a-9063522ba379>
-
-Removing the tasks after the merge:
-
-<https://github.com/user-attachments/assets/0df9c32b-9312-49c3-a819-c884836b1d91>
+<https://youtu.be/lZUw3rr1GLY>
 
 ## Status
 
