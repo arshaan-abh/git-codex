@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1
+
+### Patch Changes
+
+- Rewrote README.md
+
 ## 1.1.0
 
 ### Minor Changes
