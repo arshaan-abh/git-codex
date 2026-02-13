@@ -308,3 +308,53 @@ Remaining tasks from `PLAN.md` that are not yet implemented or fully closed.
   - Conflict handling and rollback/abort guidance is clear.
   - Tests cover clean sync and conflict scenarios.
   - README includes workflow examples with `add -> sync -> finish`.
+
+## 20) `finish` Auto-Stash/Restore for Dirty Merge Target
+
+- Status: `not implemented`
+- Plan source: `feature request`
+- Description:
+  - Add an automatic stash flow when `git codex finish <task>` starts and the current merge target worktree (the currently checked-out branch/worktree where merge is executed) has uncommitted changes.
+  - Important git behavior to handle explicitly: `git stash` does **not** include newly created untracked files by default.
+  - Required behavior:
+    - Create a dedicated, traceable stash entry for the exact pre-finish local changes before merge starts.
+    - Run finish merge flow as usual.
+    - After merge completes, always attempt to restore exactly that stash entry:
+      - success path: pop/apply the saved changes
+      - failure path: still pop/apply the saved changes
+    - Restoration must happen regardless of merge outcome (success, conflict abort, merge failure).
+  - Safety requirements:
+    - Only restore the stash created by the current finish run (do not touch unrelated stash entries).
+    - If stash apply/pop conflicts, stop with a clear recovery message and keep enough metadata for manual recovery.
+    - Emit clear output and JSON events for stash created/restored/failed states.
+    - Handle untracked files safely by using explicit stash mode (`--include-untracked` or equivalent) when enabled.
+    - Define behavior for ignored files (default exclude vs optional include-all mode).
+  - Potential problems/edge cases:
+    - Stash creation can fail when repository is already in merge/rebase/cherry-pick state.
+    - Restoring stash can conflict with new merge results and must not silently discard user changes.
+    - Multiple concurrent `finish` runs in the same repo can race if stash identification is not unique.
+    - Submodule changes and file mode-only changes may need explicit handling/tests.
+    - Stash apply success but drop failure (or inverse) can leave partially completed state.
+  - Suggested controls:
+    - `--auto-stash` (default on for finish) and `--no-auto-stash` override.
+    - Optional `--keep-stash-on-fail` to preserve stash entry instead of popping when restoration has issues.
+    - Optional `--stash-mode tracked|untracked|all`:
+      - `tracked`: stash tracked changes only
+      - `untracked`: include untracked files
+      - `all`: include untracked + ignored files
+    - Optional `--stash-keep-index` behavior switch if staged-state preservation is required.
+- Completion criteria:
+  - Dirty merge target no longer blocks finish; changes are safely stashed first.
+  - Exact stash entry is restored after both successful and failed finish paths.
+  - Unrelated stash entries are never modified.
+  - Untracked-file behavior is explicitly implemented and documented (not left to default git stash behavior).
+  - Restoration guarantees are defined for apply/drop partial-failure cases.
+  - Integration tests cover:
+    - merge success + stash restored
+    - merge failure + stash restored
+    - conflict resolution path + stash restored
+    - stash apply conflict handling
+    - untracked file preservation/restoration
+    - ignored file behavior based on selected stash mode
+    - existing merge/rebase state rejection path
+  - README/docs describe behavior, flags, and manual recovery steps.
